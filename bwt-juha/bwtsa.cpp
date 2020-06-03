@@ -74,12 +74,12 @@ int main(int argc, char* argv[])
   std::streambuf* bwtbuf = bwtfile.rdbuf();
   
 
-  std::vector<int> sa(length+1);
+  std::vector<long int> sa(length+1);
   sa[0] = length;
   construct_suffix_array(text.begin(), text.end(), sa.begin()+1, sa.end());
 
   std::ostreambuf_iterator<char> bwtiter(bwtbuf);
-  std::vector<int>::iterator i;
+  std::vector<long int>::iterator i;
   for (i = sa.begin(); i != sa.end(); ++i) {
     if (*i != 0) {
       *bwtiter++ = text[*i-1];
