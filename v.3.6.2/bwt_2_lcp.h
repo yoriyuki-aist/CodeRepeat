@@ -18,7 +18,7 @@
 typedef struct{
   uint64_t pos; //the F list position where the queried character occurs, i.e., F[text_pos] == queried character 
   uint32_t abt_pos;  //the alphabet position of the queried character, i.e., alphabet[abt_pos] == queried character
-  uint64_t rank;  //the number of occurances of the queried character upon position text_pos in the F list, i.e., there are 'rank' copies of the queried character in F[0...text_pos]
+  uint64_t rank;  //the number of occurrences of the queried character upon position text_pos in the F list, i.e., there are 'rank' copies of the queried character in F[0...text_pos]
 }Fitem_t;  
 
 

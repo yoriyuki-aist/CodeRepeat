@@ -98,7 +98,7 @@ int main(int argc, char **argv)
   unsigned long long int bwt_size;
   bwt_size = file_size(fp_bwt); 
 
-  /* Set the max repeat size and max repeat occurances if they are not given by the user */
+  /* Set the max repeat size and max repeat occurrences if they are not given by the user */
   if(flag_max_size == 0)
     max_size = bwt_size; 
   if(flag_max_occ == 0)
@@ -331,7 +331,7 @@ void master(CWaveletTree<uchar_t> *wt_bwt, CWaveletTree<uint32_t> *wt_lcp, uint6
   }
     */
 
-  //find all the max repeats with length belonging to [min_size, max_size], and occurance in [min_occ, max_occ]. 
+  //find all the max repeats with length belonging to [min_size, max_size], and occurrence in [min_occ, max_occ].
   for(; leaf != NULL && (leaf->alphabet[0]) <= max_size; leaf = leaf->next){
     cout << "Processing LCP value: " << leaf->alphabet[0] << "..." << endl;
     for(uint64_t i = 0; i < leaf->vector_size; i++){
@@ -362,7 +362,7 @@ void output(CWaveletTree<uchar_t> *wt_bwt, CBitVector *sam_bv, uint32_t *sample,
             FILE **fp_output, uint32_t rep_size, unsigned long long int suf_start, unsigned long long int suf_end,
 	    uchar_t dollar, uint64_t rank_dollar, uint64_t bwt_size, uint32_t abt_size, uint64_t *c, uint64_t bwt_pos)
 {
-  fprintf(*fp_output, "Repeat size: %u\nNumber of ccurances: %llu\n", rep_size, suf_end + 1 - suf_start);
+  fprintf(*fp_output, "Repeat size: %u\nNumber of occurrences: %llu\n", rep_size, suf_end + 1 - suf_start);
 
   Fitem_t fitem;
 

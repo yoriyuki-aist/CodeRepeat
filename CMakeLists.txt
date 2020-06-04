@@ -5,4 +5,5 @@ set(CMAKE_CXX_STANDARD 14)
 
 add_subdirectory(bwt-juha)
 add_subdirectory(v.3.6.2)
+add_subdirectory(converter)
 

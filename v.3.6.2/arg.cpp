@@ -75,8 +75,8 @@ void usage(FILE *f, char *s)
           "\t\tWarning: this operation is very slow and yields a large amount of data\n"
           "\t-m\tminimum repeat size, must be larger than 0. The default value is 1.\n"
           "\t-M\tmaximum repeat size, must be no smaller than minimum repeat size. The default value if infinite.\n"
-          "\t-r\tminimum number of occurances of the repeats, must be larer than 1. The default value is 2.\n"
-          "\t-R\tmaximum number of occurances of the repeats, must be no smaller than the minimum number of occurances.\n"
+          "\t-r\tminimum number of occurrences of the repeats, must be larer than 1. The default value is 2.\n"
+          "\t-R\tmaximum number of occurrences of the repeats, must be no smaller than the minimum number of occurrences.\n"
           "\t\tThe default value is infinite.\n"
           "\t-b\tThe file that contains the mark bit vector for the sampled positions.\n"
 	  "\t\tThis file will be created by the program if it is not provided.\n"
@@ -295,12 +295,12 @@ int get_args(int argc, char **argv)
   }
 
   if(min_occ < 2){
-    fprintf(stderr, "Error: minimum repeat occurance must be larger than 1.\n");
+    fprintf(stderr, "Error: minimum repeat occurrence must be larger than 1.\n");
     flag = 1;
   }
 
   if(max_occ < min_occ && flag_max_occ == 1){
-    fprintf(stderr, "Error: maximum repeat occurance must be no smaller than minimum repeat occurance.\n");
+    fprintf(stderr, "Error: maximum repeat occurrence must be no smaller than minimum repeat occurrence.\n");
     flag = 1;
   }
   
