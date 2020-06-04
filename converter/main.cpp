@@ -19,42 +19,36 @@ int main(int argc, char **argv) {
         pos_output_file = bwt_file + "pos";
     }
 
-    FILE *fp_bwt, *fp_pos_output, *fp_output;
-
     /* Open all relevant files */
     std::ifstream bwt_in(bwt_file);
-    std::ofstream bwt_pos_out(pos_output_file);
-    std::ofstream bwt_out(output_file);
-
     if (!bwt_in) {
         std::cout << "bwt file open fails. exit.\n";
         exit(1);
     }
+    std::ofstream bwt_pos_out(pos_output_file);
     if (!bwt_pos_out) {
         std::cout << "bwt pos file open fails. exit.\n";
         exit(1);
     }
-    if(!bwt_out) {
+    std::ofstream bwt_out(output_file);
+    if (!bwt_out) {
         std::cout << "output file open fails. exit.\n";
         exit(1);
     }
+
     std::string header;
     bwt_in >> header;
     if (header != "BWT") {
         std::cout << "invalid bwt file, does not begin with \"BWT\"";
     }
-    std::string tmp;
-    bwt_in >> tmp;
-    bwt_pos_out << tmp;
-    std::getline(bwt_in, tmp); // discard rest of the line
-    bool newline;
-    while (std::getline(bwt_in, tmp)) {
-        tmp.erase(std::remove(tmp.begin(), tmp.end(), '\r'), tmp.end());
-        if (newline) {
-            bwt_out << "\n";
-        }
-        bwt_out << tmp;
-        newline = true;
-    }
+    bwt_in >> header;
+    bwt_pos_out << header;
+    std::getline(bwt_in, header); // discard rest of the line
+
+    std::istreambuf_iterator<char> begin_source(bwt_in);
+    std::istreambuf_iterator<char> end_source;
+    std::ostreambuf_iterator<char> begin_dest(bwt_out);
+    std::copy(begin_source, end_source, begin_dest);
+
     std::cout << "Done!\n";
 }
