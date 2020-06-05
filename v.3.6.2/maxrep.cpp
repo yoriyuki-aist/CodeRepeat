@@ -14,7 +14,8 @@ void maxrep(char *bwt_file, char *bwt_pos_file, char *lcp_file, uint32_t ml)
   sprintf(filename, "%s.reps", bwt_file);  //filename of the file contatining the SA intervals of the repeats. 
 
 
-  if((fp_bwt = fopen(bwt_file, "r")) == NULL){ cout << "bwt file open fail. exit(1)" << endl; exit(1); }
+  // binary because EOF gets interpreted on windows in text mode
+  if((fp_bwt = fopen(bwt_file, "rb")) == NULL){ cout << "bwt file open fail. exit(1)" << endl; exit(1); }
   if((fp_bwt_pos = fopen(bwt_pos_file, "r")) == NULL){ cout << "bwt pos file open fail. exit(1)" << endl; exit(1); }
   if((fp_lcp = fopen(lcp_file, "r")) == NULL){ cout << "lcp file open fail. exit(1)" << endl; exit(1); }
   if((fp_reps = fopen(filename, "w")) == NULL){ cout << "repeat SA intervals file open fail. exit(1)" << endl; exit(1); }

@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
     }
 
     /* Open all relevant files */
-    std::ifstream bwt_in(bwt_file);
+    std::ifstream bwt_in(bwt_file, std::ios::binary);
     if (!bwt_in) {
         std::cout << "bwt file open fails. exit.\n";
         exit(1);

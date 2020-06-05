@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
 
   // Open bwt file 
   std::FILE *bwtfile;
-  bwtfile = std::fopen(infilename.c_str(), "r");
+  bwtfile = std::fopen(infilename.c_str(), "rb");   // binary because EOF gets interpreted on windows in text mode
   if (!bwtfile) {
     std::cerr << "ERROR: Unable to open bwt file " << infilename << std::endl;
     std::exit(EXIT_FAILURE);

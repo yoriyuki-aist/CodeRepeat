@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
         in.close();
     }
     out.close();
-    std::ifstream is(out_file);   // open file
+    std::ifstream is(out_file, std::ios::binary);   // binary because EOF gets interpreted on windows in text mode
     char c;
     while (is.get(c))                  // loop getting single characters
         std::cout << c;

@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
 
   // Open text file 
   std::FILE *textfile;
-  textfile = std::fopen(infilename.c_str(), "r");
+  textfile = std::fopen(infilename.c_str(), "rb");   // binary because EOF gets interpreted on windows in text mode
   if (!textfile) {
     std::cerr << "ERROR: Unable to open text file " << infilename << std::endl;
     std::exit(EXIT_FAILURE);

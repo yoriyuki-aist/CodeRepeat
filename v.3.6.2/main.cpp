@@ -89,8 +89,9 @@ int main(int argc, char **argv)
   }
   */
 
-  /* Open all relevant files */  
-  if((fp_bwt=fopen(bwt_file, "r"))==NULL){ cout << "bwt file open fails. exit." << endl; exit(1); }
+  /* Open all relevant files */
+  // binary because EOF gets interpreted on windows in text mode
+  if((fp_bwt=fopen(bwt_file, "rb"))==NULL){ cout << "bwt file open fails. exit." << endl; exit(1); }
   if((fp_bwt_pos=fopen(bwt_pos_file, "r"))==NULL){ cout << "bwt pos file open fails. exit." << endl; exit(1); }
   if((fp_output=fopen(output_file, "w"))==NULL){ cout << "output file open fails. exit." << endl; exit(1); }
  

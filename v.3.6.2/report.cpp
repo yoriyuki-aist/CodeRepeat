@@ -23,9 +23,10 @@ void report(char *bwt_file, char *bwt_pos_file, char *reps_sa_file)
   FILE *fp_bwt, *fp_bwt_pos, *fp_sa, *fp_txt_pos;
 
   char filename[256]; 
-  sprintf(filename, "%s.reptext", bwt_file); 
+  sprintf(filename, "%s.reptext", bwt_file);
 
-  if((fp_bwt = fopen(bwt_file, "r")) == NULL){ cout << "bwt file open fail. exit(1)" << endl; exit(1); }
+  // binary because EOF gets interpreted on windows in text mode
+  if((fp_bwt = fopen(bwt_file, "rb")) == NULL){ cout << "bwt file open fail. exit(1)" << endl; exit(1); }
   if((fp_bwt_pos = fopen(bwt_pos_file, "r")) == NULL){ cout << "bwt pos file open fail. exit(1)" << endl; exit(1); }
   if((fp_sa = fopen(reps_sa_file, "r")) == NULL){ cout << "SA interval file open fail. exit(1)" << endl; exit(1); }
   if((fp_txt_pos = fopen(filename, "w")) == NULL){ cout << "Repeats text position file open fail. exit(1)" << endl; exit(1); }

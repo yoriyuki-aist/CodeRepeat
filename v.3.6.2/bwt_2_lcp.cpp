@@ -30,7 +30,7 @@ void bwt_2_(char * bwt_file, char* pos_file)
   char filename[64];
   
   FILE *fp_bwt, *fp_pos; 
-  if((fp_bwt=fopen(bwt_file, "r"))==NULL){
+  if((fp_bwt=fopen(bwt_file, "rb"))==NULL){   // binary because EOF gets interpreted on windows in text mode
     cout << "BWT file open fails. Exit." << endl;
     exit(1); 
   }
