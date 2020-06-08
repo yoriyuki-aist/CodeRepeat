@@ -15,7 +15,7 @@ bool cmdOptionExists(char **begin, char **end, const std::string &option) {
 
 int main(int argc, char **argv) {
     if (argc < 3) {
-        std::cout << "\nUsage:\t%s\t<output_file>\t<input_directory>\t[<options...>]\n";
+        std::cout << "\nUsage:\t%s\t<input_directory>\t<output_file>\t[<options...>]\n";
         exit(1);
     }
 
@@ -24,16 +24,16 @@ int main(int argc, char **argv) {
     bool normalize_newlines = cmdOptionExists(argv, argv + argc, "-nl");
     bool process_text = normalize_spaces || remove_trailing_spaces;
 
-    std::string out_file = argv[1];
+    std::string out_file = argv[2];
 
     std::ofstream out(out_file);
     if (!out) {
         std::cout << "output file open fails. exit.\n";
         exit(1);
     }
-    std::cout << "Looking up files in " << argv[2] << "\n";
+    std::cout << "Looking up files in " << argv[1] << "\n";
     std::set<fs::path> paths;   // directory iteration order is unspecified, so we sort all the paths for consistent behaviour
-    for (const auto &entry : fs::recursive_directory_iterator(argv[2])) {
+    for (const auto &entry : fs::recursive_directory_iterator(argv[1])) {
         if (entry.is_regular_file()) {
             std::cout << entry.path() << std::endl;
             paths.insert(entry.path());
