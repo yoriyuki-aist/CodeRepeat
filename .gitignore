@@ -1,3 +1,16 @@
+# Ignore all extensionless files
+*
+!*/
+!*.*
+
+
+# Ignore Cmake related files
+
+CMakeFiles
+*.cmake
+CMakeCache.txt
+Makefile
+
 # Created by .ignore support plugin (hsz.mobi)
 ### C++ template
 # Prerequisites
@@ -32,6 +45,7 @@
 *.exe
 *.out
 *.app
+bin
 
 **/.idea
 **/cmake-build-debug
