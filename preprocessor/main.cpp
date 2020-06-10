@@ -81,12 +81,12 @@ int main(int argc, char **argv) {
         in.close();
     }
     out.close();
-    std::ifstream is(out_file, std::ios::binary);   // binary because EOF gets interpreted on windows in text mode
-    std::cout << "\"\"\"\n";
-    char c;
-    while (is.get(c))                  // loop getting single characters
-        std::cout << c;
-    is.close();                        // close file
+    // std::ifstream is(out_file, std::ios::binary);   // binary because EOF gets interpreted on windows in text mode
+    // std::cout << "\"\"\"\n";
+    // char c;
+    // while (is.get(c))                  // loop getting single characters
+    //     std::cout << c;
+    // is.close();                        // close file
     std::cout << "\n\"\"\"\n";
 
     std::cout << "\nDone!\n";
