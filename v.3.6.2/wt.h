@@ -566,7 +566,7 @@ void CWaveletTree<Text_t>::compute_levels()
   }
 
   uint64_t head_freq = 1, tail_freq; 
-  for(uint i = 0; i < alphabet_size; i++)
+  for(unsigned int i = 0; i < alphabet_size; i++)
     head_freq += freqs[i]; 
   tail_freq = head_freq + 1; 
 
