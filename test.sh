@@ -1,7 +1,11 @@
-if [ $# -ne 1 ];
+if [ -z $1 ];
 then
 	echo "Usage: $0 <srcfolder>"
 	exit
+fi
+if [ -z $PREFIX ]
+then
+  echo "The PREFIX environment variable must be set to the location of the cmake build directory."
 fi
 $PREFIX/bin/preprocessor $1 $1.concat
 $PREFIX/bin/bwt $1.concat $1.bwt
