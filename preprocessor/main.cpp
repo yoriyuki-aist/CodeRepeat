@@ -19,10 +19,15 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
+    // (\h+)       -> ' '
     bool normalize_spaces = cmdOptionExists(argv, argv + argc, "-ns");
+    // (\h+\r?\n)  -> ''
     bool remove_trailing_spaces = cmdOptionExists(argv, argv + argc, "-ntr");
+    // (\r?\n)     -> '\n'
     bool normalize_newlines = cmdOptionExists(argv, argv + argc, "-nl");
-    bool process_text = normalize_spaces || remove_trailing_spaces;
+    // (\r?\n)     -> ' '
+    bool newlines_to_spaces = cmdOptionExists(argv, argv + argc, "-nl2s");
+    bool process_text = normalize_spaces || remove_trailing_spaces || newlines_to_spaces;
 
     std::string out_file = argv[2];
 
@@ -70,6 +75,9 @@ int main(int argc, char **argv) {
                 }
                 if (normalize_newlines) {
                     processed_line = std::regex_replace(buffer.get(), newline_regex, "\n");
+                }
+                if (newlines_to_spaces) {
+                    processed_line = std::regex_replace(buffer.get(), newline_regex, " ");
                 }
                 out << processed_line;
             }
