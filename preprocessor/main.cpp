@@ -9,8 +9,46 @@ namespace fs = std::filesystem;
 
 const char EOF_CHAR = char(26);
 
-bool cmdOptionExists(char **begin, char **end, const std::string &option) {
-    return std::find(begin, end, option) != end;
+class ArgParser {
+private:
+    char **begin;
+    char **end;
+    bool empty;
+public:
+    ArgParser() = delete;
+    ArgParser(char **begin, char **end): begin(begin), end(end) {
+        empty = begin >= end;
+    }
+
+    bool cmdOptionExists(const std::string &option) {
+        return !empty && std::find(begin, end, option) != end;
+    }
+
+    std::optional<std::vector<std::string>> getCmdArgs(const std::string &option) {
+        if (!empty) {
+            char **found = std::find(begin, end, option);
+            if (found != end) {
+                char **arg_start = found + 1;
+                char **arg_end = arg_start;
+                while (arg_end != end && *arg_end[0] != '-') {
+                    arg_end++;
+                }
+                if (arg_start == arg_end) {
+                    throw std::invalid_argument(option + " requires one or more arguments after it.");
+                }
+                return std::vector<std::string>(arg_start, arg_end);
+            }
+        }
+        return {};
+    }
+};
+
+bool endsWith(std::string const &fullString, std::string const &ending) {
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
 }
 
 int main(int argc, char **argv) {
@@ -19,15 +57,18 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
+    ArgParser args = ArgParser(argv + 3, argv + argc);
+
     // (\h+)       -> ' '
-    bool normalize_spaces = cmdOptionExists(argv, argv + argc, "-ns");
+    bool normalize_spaces = args.cmdOptionExists("-ns");
     // (\h+\r?\n)  -> ''
-    bool remove_trailing_spaces = cmdOptionExists(argv, argv + argc, "-ntr");
+    bool remove_trailing_spaces = args.cmdOptionExists("-ntr");
     // (\r?\n)     -> '\n'
-    bool normalize_newlines = cmdOptionExists(argv, argv + argc, "-nl");
+    bool normalize_newlines = args.cmdOptionExists("-nl");
     // (\r?\n)     -> ' '
-    bool newlines_to_spaces = cmdOptionExists(argv, argv + argc, "-nl2s");
+    bool newlines_to_spaces = args.cmdOptionExists("-nl2s");
     bool process_text = normalize_spaces || remove_trailing_spaces || newlines_to_spaces;
+    std::optional<std::vector<std::string>> file_extensions = args.getCmdArgs("--extensions");
 
     std::string out_file = argv[2];
 
@@ -40,8 +81,11 @@ int main(int argc, char **argv) {
     std::set<fs::path> paths;   // directory iteration order is unspecified, so we sort all the paths for consistent behaviour
     for (const auto &entry : fs::recursive_directory_iterator(argv[1])) {
         if (entry.is_regular_file()) {
-            std::cout << entry.path() << std::endl;
-            paths.insert(entry.path());
+            const auto &path = entry.path();
+            if (!file_extensions || std::any_of(file_extensions->begin(), file_extensions->end(), [path](auto ext) {return endsWith(path.string(), ext);})) {
+                std::cout << path << std::endl;
+                paths.insert(path);
+            }
         }
     }
 
