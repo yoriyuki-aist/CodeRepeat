@@ -7,11 +7,18 @@ if [ -z $PREFIX ]
 then
   echo "The PREFIX environment variable must be set to the location of the cmake build directory."
 fi
-$PREFIX/bin/preprocessor $1 $1.concat
+$PREFIX/bin/preprocessor $1 $1.concat --extensions .rs .cpp .h .hpp .java .py .js
 $PREFIX/bin/bwt $1.concat $1.bwt
 $PREFIX/bin/converter $1.bwt
 case "$OSTYPE" in
   darwin*)  TIMECOM=/usr/local/bin/gtime ;; 
   *)        TIMECOM=/usr/bin/time;;
 esac
+start="$(date --iso-8601=ns)"
 $TIMECOM -v -o "$1.fmrtime" $PREFIX/bin/findmaxrep -i $1.bwtraw -P $1.bwtpos -m 100
+end="$(date --iso-8601=ns)"
+elapsed="
+start: $start
+end: $end
+"
+echo "$elapsed" >> "$1.fmrtime"
