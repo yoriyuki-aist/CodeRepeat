@@ -71,6 +71,7 @@ int main(int argc, char **argv) {
     // (\r?\n)     -> ' '
     bool newlines_to_spaces = args.cmdOptionExists("-nl2s");
     bool process_text = normalize_spaces || remove_trailing_spaces || newlines_to_spaces;
+	bool debug = args.cmdOptionExists("--debug");
     std::optional<std::vector<std::string>> file_extensions = args.getCmdArgs("--extensions");
 
     std::string out_file = argv[2];
@@ -100,8 +101,10 @@ int main(int argc, char **argv) {
             std::cerr << "input file " << file << " open fails. exit.\n";
             exit(1);
         }
-
-        out << "==================" << file << "==================\n";
+		
+		if (debug) {
+			out << "==================" << file << "==================\n";
+		}
 
         constexpr size_t buffer_size = 1024 * 1024;
         std::unique_ptr<char[]> buffer(new char[buffer_size]);
