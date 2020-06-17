@@ -81,37 +81,36 @@ int main(int argc, char **argv) {
         exit(1);
     }
     std::cout << "Looking up files in " << argv[1] << "\n";
-    std::set<fs::path> paths;   // directory iteration order is unspecified, so we sort all the paths for consistent behaviour
+    std::set<fs::directory_entry> files;   // directory iteration order is unspecified, so we sort all the paths for consistent behaviour
     for (const auto &entry : fs::recursive_directory_iterator(argv[1])) {
         if (entry.is_regular_file()) {
             const auto &path = entry.path();
             if (!file_extensions || std::any_of(file_extensions->begin(), file_extensions->end(), [path](auto ext) {return endsWith(path.string(), ext);})) {
                 std::cout << path << std::endl;
-                paths.insert(path);
+                files.insert(entry);
             }
         }
     }
 
-    for (const fs::path &path : paths) {
-        std::ifstream in(path);
-        std::cout << "opening input file " << path << "\n";
+    for (const fs::directory_entry &file : files) {
+        std::ifstream in(file.path());
+        std::cout << "opening input file " << file << "\n";
 
         if (!in) {
-            std::cerr << "input file " << path << " open fails. exit.\n";
+            std::cerr << "input file " << file << " open fails. exit.\n";
             exit(1);
         }
 
-        out << "==================" << path << "==================\n";
+        out << "==================" << file << "==================\n";
 
-        if (process_text) {
-            constexpr size_t buffer_size = 1024 * 1024;
-            std::unique_ptr<char[]> buffer(new char[buffer_size]);
-            std::unique_ptr<char[]> out_buffer(new char[buffer_size]);
+        constexpr size_t buffer_size = 1024 * 1024;
+        std::unique_ptr<char[]> buffer(new char[buffer_size]);
+        std::unique_ptr<char[]> out_buffer(new char[buffer_size]);
 
-            while (in) {
+        while (in) {
+//            if (process_text) {
                 in.read(buffer.get(), buffer_size);
                 // process data in buffer
-                // copies all data into buffer
                 bool skip_next_space = false;
                 int space_start = -1;
                 for (int in_idx = 0, out_idx = 0; in_idx < buffer_size; in_idx++) {
@@ -157,10 +156,10 @@ int main(int argc, char **argv) {
                         break;
                     }
                 }
-                out << out_buffer.get();
-            }
-        } else {
-            out << in.rdbuf();
+//            } else {
+//                in.read(out_buffer.get(), buffer_size);
+//            }
+            out << out_buffer.get();
         }
 
         out << EOF_CHAR;
