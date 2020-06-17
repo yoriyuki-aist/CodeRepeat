@@ -7,7 +7,8 @@
 
 namespace fs = std::filesystem;
 
-const char EOF_CHAR = char(26);
+static const char SPACE_CHAR = ' ';
+static const char EOF_CHAR = char(26);
 
 class ArgParser {
 private:
@@ -42,6 +43,8 @@ public:
         return {};
     }
 };
+
+bool isSpace(char c);
 
 bool endsWith(std::string const &fullString, std::string const &ending) {
     if (fullString.length() >= ending.length()) {
@@ -89,41 +92,72 @@ int main(int argc, char **argv) {
         }
     }
 
-    std::regex space_regex("\\h+");
-    std::regex trail_regex("\\s+(?=\r?\n)");
-    std::regex newline_regex("\r?\n");
-
     for (const fs::path &path : paths) {
         std::ifstream in(path);
         std::cout << "opening input file " << path << "\n";
 
         if (!in) {
-            std::cout << "input file " << path << " open fails. exit.\n";
+            std::cerr << "input file " << path << " open fails. exit.\n";
             exit(1);
         }
 
+        out << "==================" << path << "==================\n";
+
         if (process_text) {
-            constexpr size_t bufferSize = 1024 * 1024;
-            std::unique_ptr<char[]> buffer(new char[bufferSize]);
+            constexpr size_t buffer_size = 1024 * 1024;
+            std::unique_ptr<char[]> buffer(new char[buffer_size]);
+            std::unique_ptr<char[]> out_buffer(new char[buffer_size]);
 
             while (in) {
-                in.read(buffer.get(), bufferSize);
+                in.read(buffer.get(), buffer_size);
                 // process data in buffer
                 // copies all data into buffer
-                std::string processed_line;
-                if (normalize_spaces) {
-                    processed_line = std::regex_replace(buffer.get(), space_regex, " ");
+                bool skip_next_space = false;
+                int space_start = -1;
+                for (int in_idx = 0, out_idx = 0; in_idx < buffer_size; in_idx++) {
+                    char c = buffer[in_idx];
+                    if (remove_trailing_spaces) {
+                        if (space_start >= 0 && (c == '\n' || c == '\r')) {
+                            out_idx = space_start;   // erase spaces
+                        }
+                        if (std::isblank(c)) {
+                            if (space_start < 0) {
+                                space_start = out_idx;
+                            }
+                        } else {
+                            space_start = -1;
+                        }
+                    }
+                    if (normalize_newlines) {
+                        if (c == '\r') {
+                            continue;
+                        }
+                    }
+                    if (newlines_to_spaces) {
+                        if (c == '\n' || c == '\r') {
+                            c = SPACE_CHAR;
+                        }
+                    }
+                    // space normalization must be after space-producing transformations
+                    if (normalize_spaces) {
+                        if (std::isblank(c)) {
+                            if (skip_next_space) {
+                                continue;
+                            }
+                            c = SPACE_CHAR;
+                            skip_next_space = true;
+                        } else {
+                            skip_next_space = false;
+                        }
+                    }
+                    out_buffer[out_idx] = c;
+                    out_idx++;
+
+                    if (c == '\0') {
+                        break;
+                    }
                 }
-                if (remove_trailing_spaces) {
-                    processed_line = std::regex_replace(buffer.get(), trail_regex, "");
-                }
-                if (normalize_newlines) {
-                    processed_line = std::regex_replace(buffer.get(), newline_regex, "\n");
-                }
-                if (newlines_to_spaces) {
-                    processed_line = std::regex_replace(buffer.get(), newline_regex, " ");
-                }
-                out << processed_line;
+                out << out_buffer.get();
             }
         } else {
             out << in.rdbuf();
