@@ -56,12 +56,12 @@ bool endsWith(std::string const &fullString, std::string const &ending) {
 }
 
 int main(int argc, char **argv) {
-    if (argc < 3) {
-        std::cout << "\nUsage:\t%s\t<input_directory>\t<output_file>\t[<options...>]\n";
+    if (argc < 4) {
+        std::cout << "\nUsage:\t%s\t<input_directory>\t<output_file>\t<charmap_file>\t[<options...>]\n";
         exit(1);
     }
 
-    ArgParser args = ArgParser(argv + 3, argv + argc);
+    ArgParser args(argv + 4, argv + argc);
 
     // (\h+)       -> ' '
     bool normalize_spaces = args.cmdOptionExists("-ns");
@@ -77,12 +77,20 @@ int main(int argc, char **argv) {
     std::optional<std::vector<std::string>> file_extensions = args.getCmdArgs("--extensions");
 
     std::string out_file = argv[2];
+    std::string charmap_file = argv[3];
 
     std::ofstream out(out_file);
+    std::ofstream charmap(charmap_file);
+
     if (!out) {
         std::cout << "output file open fails. exit.\n";
         exit(1);
     }
+
+    if (!charmap) {
+        std::cout << "charmap file open fails. exit.\n";
+    }
+
     std::cout << "Looking up files in " << argv[1] << "\n";
     std::set<fs::directory_entry> files;   // directory iteration order is unspecified, so we sort all the paths for consistent behaviour
     for (const auto &entry : fs::recursive_directory_iterator(argv[1])) {
@@ -104,6 +112,8 @@ int main(int argc, char **argv) {
             std::cerr << "input file " << file << " open fails. exit.\n";
             exit(1);
         }
+
+        charmap << out.tellp() << "\t" << file << "\n";
 
         if (debug) {
             out << "==================" << file << "==================\n";
@@ -164,6 +174,7 @@ int main(int argc, char **argv) {
         in.close();
     }
     out.close();
+    charmap.close();
     // std::ifstream is(out_file, std::ios::binary);   // binary because EOF gets interpreted on windows in text mode
     // std::cout << "\"\"\"\n";
     // char c;

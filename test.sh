@@ -8,7 +8,7 @@ then
   echo "The PREFIX environment variable must be set to the location of the cmake build directory."
   exit 1
 fi
-$PREFIX/bin/preprocessor $1 $1.concat --extensions .rs .cpp .h .hpp .java .py .js .txt
+$PREFIX/bin/preprocessor $1 $1.concat $1.charmap --extensions .rs .cpp .h .hpp .java .py .js .txt
 $PREFIX/bin/bwt $1.concat $1.bwt
 $PREFIX/bin/converter $1.bwt
 case "$OSTYPE" in
