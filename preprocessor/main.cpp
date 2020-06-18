@@ -17,7 +17,8 @@ private:
     bool empty;
 public:
     ArgParser() = delete;
-    ArgParser(char **begin, char **end): begin(begin), end(end) {
+
+    ArgParser(char **begin, char **end) : begin(begin), end(end) {
         empty = begin >= end;
     }
 
@@ -48,7 +49,7 @@ bool isSpace(char c);
 
 bool endsWith(std::string const &fullString, std::string const &ending) {
     if (fullString.length() >= ending.length()) {
-        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+        return (0 == fullString.compare(fullString.length() - ending.length(), ending.length(), ending));
     } else {
         return false;
     }
@@ -71,7 +72,8 @@ int main(int argc, char **argv) {
     // (\r?\n)     -> ' '
     bool newlines_to_spaces = args.cmdOptionExists("-nl2s");
     bool process_text = normalize_spaces || remove_trailing_spaces || newlines_to_spaces;
-	bool debug = args.cmdOptionExists("--debug");
+    bool eof = args.cmdOptionExists("-eof");
+    bool debug = args.cmdOptionExists("--debug");
     std::optional<std::vector<std::string>> file_extensions = args.getCmdArgs("--extensions");
 
     std::string out_file = argv[2];
@@ -86,7 +88,8 @@ int main(int argc, char **argv) {
     for (const auto &entry : fs::recursive_directory_iterator(argv[1])) {
         if (entry.is_regular_file()) {
             const auto &path = entry.path();
-            if (!file_extensions || std::any_of(file_extensions->begin(), file_extensions->end(), [path](auto ext) {return endsWith(path.string(), ext);})) {
+            if (!file_extensions || std::any_of(file_extensions->begin(), file_extensions->end(),
+                                                [path](auto ext) { return endsWith(path.string(), ext); })) {
                 std::cout << path << std::endl;
                 files.insert(entry);
             }
@@ -101,71 +104,63 @@ int main(int argc, char **argv) {
             std::cerr << "input file " << file << " open fails. exit.\n";
             exit(1);
         }
-		
-		if (debug) {
-			out << "==================" << file << "==================\n";
-		}
 
-        constexpr size_t buffer_size = 1024 * 1024;
-        std::unique_ptr<char[]> buffer(new char[buffer_size]);
-        std::unique_ptr<char[]> out_buffer(new char[buffer_size]);
-
-        while (in) {
-//            if (process_text) {
-                in.read(buffer.get(), buffer_size);
-                // process data in buffer
-                bool skip_next_space = false;
-                int space_start = -1;
-                for (int in_idx = 0, out_idx = 0; in_idx < buffer_size; in_idx++) {
-                    char c = buffer[in_idx];
-                    if (remove_trailing_spaces) {
-                        if (space_start >= 0 && (c == '\n' || c == '\r')) {
-                            out_idx = space_start;   // erase spaces
-                        }
-                        if (std::isblank(c)) {
-                            if (space_start < 0) {
-                                space_start = out_idx;
-                            }
-                        } else {
-                            space_start = -1;
-                        }
-                    }
-                    if (normalize_newlines) {
-                        if (c == '\r') {
-                            continue;
-                        }
-                    }
-                    if (newlines_to_spaces) {
-                        if (c == '\n' || c == '\r') {
-                            c = SPACE_CHAR;
-                        }
-                    }
-                    // space normalization must be after space-producing transformations
-                    if (normalize_spaces) {
-                        if (std::isblank(c)) {
-                            if (skip_next_space) {
-                                continue;
-                            }
-                            c = SPACE_CHAR;
-                            skip_next_space = true;
-                        } else {
-                            skip_next_space = false;
-                        }
-                    }
-                    out_buffer[out_idx] = c;
-                    out_idx++;
-
-                    if (c == '\0') {
-                        break;
-                    }
-                }
-//            } else {
-//                in.read(out_buffer.get(), buffer_size);
-//            }
-            out << out_buffer.get();
+        if (debug) {
+            out << "==================" << file << "==================\n";
         }
 
-        out << EOF_CHAR;
+        std::filebuf *inbuf = in.rdbuf();
+        std::filebuf *outbuf = out.rdbuf();
+        bool skip_next_space = false;
+        unsigned long space_count = 0;
+
+        for (char c = inbuf->sbumpc(); c != EOF; c = inbuf->sbumpc()) {
+            // process data in buffer
+            if (normalize_newlines) {
+                if (c == '\r') {
+                    continue;
+                }
+            }
+            if (newlines_to_spaces) {
+                if (c == '\n' || c == '\r') {
+                    c = SPACE_CHAR;
+                }
+            }
+
+            // space normalization must be after space-producing transformations
+            if (normalize_spaces) {
+                if (std::isblank(c)) {
+                    if (skip_next_space) {
+                        continue;
+                    }
+                    c = SPACE_CHAR;
+                    skip_next_space = true;
+                } else {
+                    skip_next_space = false;
+                }
+            }
+
+            if (remove_trailing_spaces) {
+                if (space_count > 0 && (c == '\n' || c == '\r')) {
+                    outbuf->pubseekoff(-space_count, std::ios_base::cur);   // erase spaces
+                }
+                if (std::isblank(c)) {
+                    space_count++;
+                } else {
+                    space_count = 0;
+                }
+            }
+
+            if (c == '\0') {
+                break;
+            }
+            outbuf->sputc (c);
+        }
+
+        if (eof) {
+            outbuf->sputc(EOF_CHAR);
+        }
+
         in.close();
     }
     out.close();
