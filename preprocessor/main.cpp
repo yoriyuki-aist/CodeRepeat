@@ -45,8 +45,6 @@ public:
     }
 };
 
-bool isSpace(char c);
-
 bool endsWith(std::string const &fullString, std::string const &ending) {
     if (fullString.length() >= ending.length()) {
         return (0 == fullString.compare(fullString.length() - ending.length(), ending.length(), ending));
@@ -89,6 +87,7 @@ int main(int argc, char **argv) {
 
     if (!charmap) {
         std::cout << "charmap file open fails. exit.\n";
+        exit(1);
     }
 
     std::cout << "Looking up files in " << argv[1] << "\n";

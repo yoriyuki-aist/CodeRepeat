@@ -16,8 +16,9 @@ case "$OSTYPE" in
   *)        TIMECOM=/usr/bin/time;;
 esac
 start="$(date --iso-8601=ns)"
-$TIMECOM -v -o "$1.fmrtime" $PREFIX/bin/findmaxrep -i $1.bwtraw -P $1.bwtpos -m 100
+$TIMECOM -v -o "$1.fmrtime" $PREFIX/bin/findmaxrep -i $1.bwtraw -P $1.bwtpos -m 10
 end="$(date --iso-8601=ns)"
+$PREFIX/bin/postprocessor $1.bwtraw.output $1.charmap
 elapsed="
 start: $start
 end: $end
