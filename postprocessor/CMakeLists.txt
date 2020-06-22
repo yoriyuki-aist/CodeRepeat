@@ -6,4 +6,5 @@ set(CMAKE_CXX_STANDARD 17)
 include_directories(.)
 
 add_executable(postprocessor
-        main.cpp)
+        main.cpp
+	jsoncpp.cpp)
