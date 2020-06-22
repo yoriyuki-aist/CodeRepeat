@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
             exit(1);
         }
 
-        charmap << out.tellp() << "\t" << file << "\n";
+        charmap << out.tellp() << "\t" << file.path().string() << "\n";
 
         if (debug) {
             out << "==================" << file << "==================\n";
