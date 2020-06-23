@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <set>
 #include <regex>
+#include <bits/unordered_set.h>
 #include "json/json.h"
 
 namespace fs = std::filesystem;
@@ -31,16 +32,22 @@ struct RepeatEntry {
     std::vector<RepeatPosition> positions;
 };
 
-Json::Value to_json(const std::vector<RepeatEntry> &repeats);
+using extension = std::string;
+using path = std::string;
+using ProcessedRepeats = std::unordered_map<extension, std::unordered_map<path, std::unordered_set<const RepeatEntry*>>>;
 
-RepeatPosition find_repeat_position(unsigned int concatpos, const std::map<unsigned int, std::string>& charmap) {
+Json::Value to_json(const ProcessedRepeats &repeats);
+
+ProcessedRepeats process(const std::vector<RepeatEntry> &vector);
+
+RepeatPosition find_repeat_position(unsigned int concatpos, const std::map<unsigned int, std::string> &charmap) {
     auto next_entry = charmap.upper_bound(concatpos);
-    const std::pair<unsigned int, std::string>& entry = *(--next_entry);
+    const std::pair<unsigned int, std::string> &entry = *(--next_entry);
     return {concatpos, concatpos - entry.first, entry.second};
 }
 
 // custom extractor for objects of type RepeatEntry
-std::istream& read(std::istream& is, RepeatEntry& repeat, const std::map<unsigned int, std::string>& charmap) {
+std::istream &read(std::istream &is, RepeatEntry &repeat, const std::map<unsigned int, std::string> &charmap) {
     repeat.positions.clear();
     std::istream::sentry s(is);
     std::string line;
@@ -133,10 +140,13 @@ int main(int argc, char **argv) {
             repeats.push_back(repeat);
         }
     } catch (std::runtime_error &e) {
-        std::cerr << "Failed to read repeat entry at position " << bwt.tellg() << " in " << bwt_file << ": " << e.what();
+        std::cerr << "Failed to read repeat entry at position " << bwt.tellg() << " in " << bwt_file << ": "
+                  << e.what();
     }
 
     bwt.close();
+
+    ProcessedRepeats processedRepeats = process(repeats);
 
     std::ofstream json_out(json_file);
 
@@ -145,29 +155,47 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    json_out << to_json(repeats);
+    json_out << to_json(processedRepeats);
 
     json_out.close();
 }
 
-Json::Value to_json(const std::vector<RepeatEntry> &repeats) {
+ProcessedRepeats process(const std::vector<RepeatEntry> &vector) {
+    std::unordered_map<extension, std::unordered_map<path, std::unordered_set<const RepeatEntry*>>> result;
+
+    for (const RepeatEntry &repeat : vector) {
+        for (const RepeatPosition &position : repeat.positions) {
+            fs::path file(position.source_file);
+            result[file.extension()][position.source_file].insert(&repeat);
+        }
+    }
+
+    return result;
+}
+
+Json::Value to_json(const ProcessedRepeats &repeats) {
     Json::Value root;
     root["version"] = 0;
 
-    for (const RepeatEntry& repeat : repeats) {
-        Json::Value repeatjson;
-        repeatjson["size"] = repeat.size;
-        repeatjson["occurrences"] = repeat.occurrences;
-        repeatjson["subtext"] = repeat.subtext;
+    for (const auto &extension : repeats) {
+        for (const auto &path : extension.second) {
+            for (const auto &repeat : path.second) {
+                Json::Value repeatjson;
+                repeatjson["size"] = repeat->size;
+                repeatjson["occurrences"] = repeat->occurrences;
+                repeatjson["subtext"] = repeat->subtext;
 
-        for (const RepeatPosition& pos : repeat.positions) {
-            Json::Value posjson;
-            posjson["concat_position"] = pos.concatpos;
-            posjson["source_position"] = pos.sourcepos;
-            posjson["source_file"] = pos.source_file;
-            repeatjson["positions"].append(posjson);
+                for (const RepeatPosition &pos : repeat->positions) {
+                    Json::Value posjson;
+                    posjson["concat_position"] = pos.concatpos;
+                    posjson["source_position"] = pos.sourcepos;
+                    posjson["source_file"] = pos.source_file;
+                    repeatjson["positions"].append(posjson);
+                }
+
+                root[extension.first][path.first].append(repeatjson);
+            }
         }
-        root["repeats"].append(repeatjson);
     }
 
     return root;
