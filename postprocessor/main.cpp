@@ -83,17 +83,18 @@ std::istream &read(std::istream &is, RepeatEntry &repeat, const CharMap &charmap
             throw std::runtime_error("Expected repeat subtext in third Repeat line");
         }
 
-        is.get();
-        std::getline(is, repeat.subtext);
-        std::getline(is, line);
+        is.get();   // discard the space immediately after
+        char subtext[repeat.size];
+        is.read(subtext, repeat.size);
+        repeat.subtext = std::string(subtext, subtext + repeat.size);
+        std::getline(is, line);    // get rid of the end of the line
+        std::getline(is, line, ':');
 
-        while (line.find("Suffix array interval of this repeat: [") != 0) {
-            repeat.subtext += "\n" + line;
-
-            if (!std::getline(is, line)) {
-                throw std::runtime_error("Expected suffix array interval in fourth Repeat line");
-            }
+        if (line !="Suffix array interval of this repeat") {
+            throw std::runtime_error("Expected suffix array interval in fourth Repeat line");
         }
+
+        std::getline(is, line);    // discard suffix array interval
 
         std::getline(is, line, ':');
         if (line != "Text positions of this repeat") {
