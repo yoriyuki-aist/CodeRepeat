@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <set>
 #include <regex>
+#include "json/json.h"
 
 namespace fs = std::filesystem;
 
@@ -29,6 +30,8 @@ struct RepeatEntry {
     std::string subtext;
     std::vector<RepeatPosition> positions;
 };
+
+Json::Value to_json(const std::vector<RepeatEntry> &repeats);
 
 RepeatPosition find_repeat_position(unsigned int concatpos, const std::map<unsigned int, std::string>& charmap) {
     auto next_entry = charmap.upper_bound(concatpos);
@@ -86,13 +89,14 @@ std::istream& read(std::istream& is, RepeatEntry& repeat, const std::map<unsigne
 }
 
 int main(int argc, char **argv) {
-    if (argc < 3) {
-        std::cout << "\nUsage:\t%s\t<bwt_output>\t<charmap_file>\t[<options...>]\n";
+    if (argc < 4) {
+        std::cout << "\nUsage:\t%s\t<bwt_output>\t<charmap_file>\t<output_file>\t[<options...>]\n";
         exit(1);
     }
 
     std::string bwt_file = argv[1];
     std::string charmap_file = argv[2];
+    std::string json_file = argv[3];
     std::ifstream charmap_in(charmap_file);
 
     if (!charmap_in) {
@@ -133,4 +137,38 @@ int main(int argc, char **argv) {
     }
 
     bwt.close();
+
+    std::ofstream json_out(json_file);
+
+    if (!json_out) {
+        std::cout << "json output file open fails. exit.\n";
+        exit(1);
+    }
+
+    json_out << to_json(repeats);
+
+    json_out.close();
+}
+
+Json::Value to_json(const std::vector<RepeatEntry> &repeats) {
+    Json::Value root;
+    root["version"] = 0;
+
+    for (const RepeatEntry& repeat : repeats) {
+        Json::Value repeatjson;
+        repeatjson["size"] = repeat.size;
+        repeatjson["occurrences"] = repeat.occurrences;
+        repeatjson["subtext"] = repeat.subtext;
+
+        for (const RepeatPosition& pos : repeat.positions) {
+            Json::Value posjson;
+            posjson["concat_position"] = pos.concatpos;
+            posjson["source_position"] = pos.sourcepos;
+            posjson["source_file"] = pos.source_file;
+            repeatjson["positions"].append(posjson);
+        }
+        root["repeats"].append(repeatjson);
+    }
+
+    return root;
 }
