@@ -22,6 +22,8 @@ struct RepeatPosition {
     const unsigned int concatpos{};
     // The position of the repeat in the source file (begins at 0!)
     const unsigned int sourcepos{};
+    // the fraction of the total file's length that the repeat represents
+    const double relative_size;
     const std::string source_file;
 };
 
@@ -32,22 +34,33 @@ struct RepeatEntry {
     std::vector<RepeatPosition> positions;
 };
 
-using extension = std::string;
-using path = std::string;
-using ProcessedRepeats = std::unordered_map<extension, std::unordered_map<path, std::unordered_set<const RepeatEntry*>>>;
+struct FileRepeats {
+    std::vector<RepeatEntry> repeats;
+    fs::path path;
+};
 
-Json::Value to_json(const ProcessedRepeats &repeats);
+using extension = std::string;
+using ProcessedRepeats = std::unordered_map<extension, std::vector<FileRepeats>>;
+using CharMap = std::map<unsigned int, std::string>;
+
+Json::Value
+to_json(const ProcessedRepeats &repeats,
+        const CharMap &map);
 
 ProcessedRepeats process(const std::vector<RepeatEntry> &vector);
 
-RepeatPosition find_repeat_position(unsigned int concatpos, const std::map<unsigned int, std::string> &charmap) {
+RepeatPosition find_repeat_position(unsigned int concatpos, const CharMap &charmap, int repeat_length) {
     auto next_entry = charmap.upper_bound(concatpos);
+    unsigned int file_end = next_entry->first;
     const std::pair<unsigned int, std::string> &entry = *(--next_entry);
-    return {concatpos, concatpos - entry.first, entry.second};
+    unsigned int file_begin = entry.first;
+    unsigned int file_size = file_end - file_begin;
+    double relative_length = (double) repeat_length / file_size;
+    return {concatpos, concatpos - entry.first, relative_length, entry.second};
 }
 
 // custom extractor for objects of type RepeatEntry
-std::istream &read(std::istream &is, RepeatEntry &repeat, const std::map<unsigned int, std::string> &charmap) {
+std::istream &read(std::istream &is, RepeatEntry &repeat, const CharMap &charmap) {
     repeat.positions.clear();
     std::istream::sentry s(is);
     std::string line;
@@ -88,7 +101,7 @@ std::istream &read(std::istream &is, RepeatEntry &repeat, const std::map<unsigne
         }
         unsigned int pos;
         while (is >> pos) {
-            repeat.positions.push_back(find_repeat_position(pos, charmap));
+            repeat.positions.push_back(find_repeat_position(pos, charmap, repeat.size));
         }
         is.clear();
     }
@@ -155,46 +168,64 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    json_out << to_json(processedRepeats);
+    json_out << to_json(processedRepeats, charmap);
 
     json_out.close();
 }
 
 ProcessedRepeats process(const std::vector<RepeatEntry> &vector) {
-    std::unordered_map<extension, std::unordered_map<path, std::unordered_set<const RepeatEntry*>>> result;
+    std::unordered_map<std::string, std::unordered_set<const RepeatEntry*>> file2repeats;
 
     for (const RepeatEntry &repeat : vector) {
         for (const RepeatPosition &position : repeat.positions) {
-            fs::path file(position.source_file);
-            result[file.extension()][position.source_file].insert(&repeat);
+            file2repeats[position.source_file].insert(&repeat);
         }
+    }
+
+    std::unordered_map<extension, std::vector<FileRepeats>> result;
+
+    for (const auto &f2r : file2repeats) {
+        fs::path file(f2r.first);
+        std::vector<RepeatEntry> repeats;
+
+        for (const auto &repeat : f2r.second) {
+            repeats.push_back(*repeat);
+        }
+
+        result[file.extension()].push_back({repeats, file});
     }
 
     return result;
 }
 
-Json::Value to_json(const ProcessedRepeats &repeats) {
+Json::Value to_json(const ProcessedRepeats &repeats, const CharMap &charmap) {
     Json::Value root;
     root["version"] = 0;
 
     for (const auto &extension : repeats) {
-        for (const auto &path : extension.second) {
-            for (const auto &repeat : path.second) {
-                Json::Value repeatjson;
-                repeatjson["size"] = repeat->size;
-                repeatjson["occurrences"] = repeat->occurrences;
-                repeatjson["subtext"] = repeat->subtext;
+        for (const auto &file_repeats : extension.second) {
+            Json::Value filejson;
+            filejson["path"] = std::string(file_repeats.path);
 
-                for (const RepeatPosition &pos : repeat->positions) {
+            for (const auto &repeat : file_repeats.repeats) {
+                Json::Value repeatjson;
+                repeatjson["size"] = repeat.size;
+                repeatjson["occurrences"] = repeat.occurrences;
+                repeatjson["subtext"] = repeat.subtext;
+
+                for (const RepeatPosition &pos : repeat.positions) {
                     Json::Value posjson;
                     posjson["concat_position"] = pos.concatpos;
                     posjson["source_position"] = pos.sourcepos;
                     posjson["source_file"] = pos.source_file;
+                    posjson["relative_size"] = pos.relative_size;
                     repeatjson["positions"].append(posjson);
                 }
 
-                root[extension.first][path.first].append(repeatjson);
+                filejson["repeats"].append(repeatjson);
             }
+
+            root[extension.first].append(filejson);
         }
     }
 
