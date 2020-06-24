@@ -111,7 +111,7 @@ std::istream &read(std::istream &is, RepeatEntry &repeat, const CharMap &charmap
 
 int main(int argc, char **argv) {
     if (argc < 4) {
-        std::cout << "\nUsage:\t%s\t<bwt_output>\t<charmap_file>\t<output_file>\t[<options...>]\n";
+        std::cout << "\nUsage:\t" << argv[0] << "\t<bwt_output>\t<charmap_file>\t<output_file>\t[<options...>]\n";
         exit(1);
     }
 

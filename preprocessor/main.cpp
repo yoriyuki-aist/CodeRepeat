@@ -55,7 +55,7 @@ bool endsWith(std::string const &fullString, std::string const &ending) {
 
 int main(int argc, char **argv) {
     if (argc < 4) {
-        std::cout << "\nUsage:\t%s\t<input_directory>\t<output_file>\t<charmap_file>\t[<options...>]\n";
+        std::cout << "\nUsage:\t"<< argv[0] << "\t<input_directory>\t<output_file>\t<charmap_file>\t[<options...>]\n";
         exit(1);
     }
 
