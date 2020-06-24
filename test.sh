@@ -57,15 +57,6 @@ else
   esac
 fi
 
-echo "Src: $src"
-echo "Dest: $dest"
-echo "Intermediary: $intermediary"
-
-case "$OSTYPE" in
-darwin*) TIMECOM=/usr/local/bin/gtime ;;
-*) TIMECOM=/usr/bin/time ;;
-esac
-
 # EXTENSIONS is deliberately expanded
 # shellcheck disable=SC2086
 "$PREFIX"/bin/preprocessor "$src" "$intermediary".concat "$intermediary".charmap $extension_filter &&\
