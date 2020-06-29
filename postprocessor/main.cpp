@@ -18,28 +18,28 @@ bool endsWith(std::string const &fullString, std::string const &ending) {
 
 struct RepeatPosition {
     // The position of the repeat in the concatenated file (begins at 0)
-    const unsigned int concatpos{};
+    const unsigned long concatpos{};
     // The position of the repeat in the source file (begins at 0!)
-    const unsigned int sourcepos{};
+    const unsigned long sourcepos{};
     const std::string source_file;
 };
 
 using path = std::string;
 using Repeats = std::unordered_map<path, std::vector<RepeatPosition>>;
-using CharMap = std::map<unsigned int, std::string>;
+using CharMap = std::map<unsigned long, std::string>;
 
-void process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, unsigned int pos) {
-    unsigned int repeat_end = pos + subtext.size();
+void process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, unsigned long pos) {
+    unsigned long repeat_end = pos + subtext.size();
     auto it = --charmap.upper_bound(pos);
 
     do {
         // beginning of the source file where the start of the repeat is found
-        unsigned int file_begin = it->first;
+        unsigned long file_begin = it->first;
         // name of the source file where the start of the repeat is found
         const std::string &source_file = it->second;
         it++;
         // beginning of the next file after the start of the repeat
-        unsigned int file_end = it->first;
+        unsigned long file_end = it->first;
         std::string repeat_subtext;
 
         if (it == charmap.end() || repeat_end <= file_end) {
@@ -48,7 +48,7 @@ void process_position(const CharMap &charmap, Repeats &repeats, std::string subt
             subtext.clear();
         } else {
             // the repeated sequence spans multiple files -> split it
-            unsigned int actual_size = file_end - pos;
+            unsigned long actual_size = file_end - pos;
             repeat_subtext = subtext.substr(0, actual_size);
             subtext = subtext.substr(actual_size);
         }
@@ -69,7 +69,7 @@ void read(std::istream &is, Repeats &repeats, const CharMap &charmap) {
             throw std::runtime_error("Expected repeat size in first Repeat line");
         }
 
-        unsigned int repeat_size;
+        unsigned long repeat_size;
         is >> repeat_size;
         std::getline(is, line); // discard rest of line
         std::getline(is, line, ':');
@@ -78,7 +78,7 @@ void read(std::istream &is, Repeats &repeats, const CharMap &charmap) {
             throw std::runtime_error("Expected number of occurrences in second Repeat line");
         }
 
-        unsigned int repeat_occurrences;
+        unsigned long repeat_occurrences;
         is >> repeat_occurrences;
         std::getline(is, line); // discard rest of line
         std::getline(is, line, ':');
@@ -105,8 +105,8 @@ void read(std::istream &is, Repeats &repeats, const CharMap &charmap) {
             throw std::runtime_error("Expected text positions in fifth Repeat line");
         }
 
-        for (int i = 0; i < repeat_occurrences; i++) {
-            unsigned int pos;
+        for (unsigned long i = 0; i < repeat_occurrences; i++) {
+            unsigned long pos;
             is >> pos;
             process_position(charmap, repeats, repeat_subtext, pos);
         }
@@ -129,9 +129,9 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    std::map<unsigned int, std::string> charmap;
+    std::map<unsigned long, std::string> charmap;
     std::string line;
-    unsigned int char_idx;
+    unsigned long char_idx;
 
     while (charmap_in >> char_idx) {
         if (charmap_in.rdbuf()->sbumpc() != '\t') {
