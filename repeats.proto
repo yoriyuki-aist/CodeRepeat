@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package clonedetection;
+
+message Repeat {
+  message Position {
+    uint64 concat_pos = 1;
+    uint64 source_pos = 2;
+    bytes source_file = 3;
+  }
+
+  string path = 1;
+  repeated Position pos = 2;
+}
+
+message Repeats {
+  repeated Repeat repeats = 1;
+}
