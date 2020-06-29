@@ -24,9 +24,12 @@ struct RepeatPosition {
     const std::string source_file;
 };
 
+
 using path = std::string;
 using Repeats = std::unordered_map<path, std::vector<RepeatPosition>>;
 using CharMap = std::map<unsigned long, std::string>;
+
+void write_to_json(const Repeats &repeats, const CharMap &charmap, const std::string &json_file);
 
 void process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, unsigned long pos) {
     unsigned long repeat_end = pos + subtext.size();
@@ -162,5 +165,36 @@ int main(int argc, char **argv) {
     }
 
     bwt.close();
-    std::cout << "Finished parsing BWT output";
+    std::cout << "Finished parsing BWT output\n";
+
+    write_to_json(repeats, charmap, json_file);
+}
+
+void write_to_json(const Repeats &repeats, const CharMap &charmap, const std::string &json_file) {
+    std::ofstream json_out(json_file);
+
+    if (!json_out) {
+        std::cout << "JSON output file open fails. exit.\n";
+        exit(1);
+    }
+
+    Json::Value root;
+    root["version"] = 0;
+
+    for (const auto &charentry : charmap) {
+        root["file_starts"][charentry.second] = charentry.first;
+    }
+
+    for (const auto &repeat : repeats) {
+        Json::Value repeatjson;
+        repeatjson["path"] = repeat.first;
+
+        for (const RepeatPosition &pos : repeat.second) {
+            repeatjson["positions"].append(pos.concatpos);
+        }
+        root["repeats"].append(repeatjson);
+    }
+
+    json_out << root;
+    json_out.close();
 }
