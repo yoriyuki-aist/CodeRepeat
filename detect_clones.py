@@ -82,7 +82,8 @@ if __name__ == "__main__":
 
     if args.intermediaries:
         intermediary = "{}/{}".format(args.intermediaries, os.path.basename(args.src))
-        os.mkdir(args.intermediaries)
+        if not os.path.exists(args.intermediaries):
+            os.mkdir(args.intermediaries)
     else:
         intermediary = "{}/{}".format(os.path.dirname(output.name), os.path.basename(args.src))
 
