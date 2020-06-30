@@ -7,4 +7,6 @@ include_directories(.)
 
 add_executable(postprocessor
         main.cpp
-	jsoncpp.cpp)
+		stringescape.cpp)
+
+#target_compile_definitions(postprocessor PUBLIC EMIT_UTF_8_JSON)

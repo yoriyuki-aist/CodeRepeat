@@ -1,32 +1,14 @@
 #include <iostream>
-#include <fstream>
 #include <algorithm>
 #include <filesystem>
 #include <set>
 #include <regex>
-#include "json/json.h"
+#include "stringescape.h"
 
 namespace fs = std::filesystem;
 
-bool endsWith(std::string const &fullString, std::string const &ending) {
-    if (fullString.length() >= ending.length()) {
-        return (0 == fullString.compare(fullString.length() - ending.length(), ending.length(), ending));
-    } else {
-        return false;
-    }
-}
-
-struct RepeatPosition {
-    // The position of the repeat in the concatenated file (begins at 0)
-    const unsigned long concatpos{};
-    // The position of the repeat in the source file (begins at 0!)
-    const unsigned long sourcepos{};
-    const std::string source_file;
-};
-
-
 using path = std::string;
-using Repeats = std::unordered_map<path, std::vector<RepeatPosition>>;
+using Repeats = std::unordered_map<path, std::vector<unsigned long>>;
 using CharMap = std::map<unsigned long, std::string>;
 
 void write_to_json(const Repeats &repeats, const CharMap &charmap, const std::string &json_file);
@@ -36,8 +18,6 @@ void process_position(const CharMap &charmap, Repeats &repeats, std::string subt
     auto it = --charmap.upper_bound(pos);
 
     do {
-        // beginning of the source file where the start of the repeat is found
-        unsigned long file_begin = it->first;
         // name of the source file where the start of the repeat is found
         const std::string &source_file = it->second;
         it++;
@@ -57,7 +37,7 @@ void process_position(const CharMap &charmap, Repeats &repeats, std::string subt
             pos += actual_size;
         }
 
-        repeats[repeat_subtext].push_back({pos, pos - file_begin, source_file});
+        repeats[repeat_subtext].push_back(pos);
     } while (!subtext.empty());
 }
 
@@ -179,23 +159,34 @@ void write_to_json(const Repeats &repeats, const CharMap &charmap, const std::st
         exit(1);
     }
 
-    Json::Value root;
-    root["version"] = 0;
+    std::cout << "Writing JSON to " << json_file << "\n";
+
+    json_out << "{\n\t\"version\": 0,\n\t\"file_starts\": {\n";
 
     for (const auto &charentry : charmap) {
-        root["file_starts"][charentry.second] = charentry.first;
+        json_out << "\t\t";
+        write_escaped_string(json_out, charentry.second);
+        json_out << ": " << charentry.first << ",\n";
     }
+
+    json_out << "\t}\n\t\"repeats\": [\n";
 
     for (const auto &repeat : repeats) {
-        Json::Value repeatjson;
-        repeatjson["path"] = repeat.first;
+        json_out << "\t\t{\n\t\t\t\"text\": ";
+        write_escaped_string(json_out, repeat.first);
+        json_out << ",\n\t\t\t\"positions\": [\n";
 
-        for (const RepeatPosition &pos : repeat.second) {
-            repeatjson["positions"].append(pos.concatpos);
+        bool print_separator = false;
+        for (unsigned long pos : repeat.second) {
+            if (print_separator) json_out << ",\n";
+            json_out << "\t\t\t\t" << pos;
+            print_separator = true;
         }
-        root["repeats"].append(repeatjson);
+
+        json_out << "\n\t\t\t]\n\t\t}\n";
     }
 
-    json_out << root;
+    json_out << "\t]\n}";
+
     json_out.close();
 }
