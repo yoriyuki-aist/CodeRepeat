@@ -54,6 +54,7 @@ void process_position(const CharMap &charmap, Repeats &repeats, std::string subt
             unsigned long actual_size = file_end - pos;
             repeat_subtext = subtext.substr(0, actual_size);
             subtext = subtext.substr(actual_size);
+            pos += actual_size;
         }
 
         repeats[repeat_subtext].push_back({pos, pos - file_begin, source_file});
