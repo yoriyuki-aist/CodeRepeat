@@ -53,7 +53,8 @@ def run_postprocessor():
         "{}/bin/postprocessor".format(args.prefix),
         "{}.bwtraw.output".format(intermediary),
         "{}.charmap".format(intermediary),
-        output.name
+        output.name,
+        "-m", str(args.minrepeat)
     ])
 
 

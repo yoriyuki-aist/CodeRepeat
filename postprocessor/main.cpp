@@ -4,6 +4,7 @@
 #include <set>
 #include <regex>
 #include "stringescape.h"
+#include "../util/ArgParser.h"
 
 namespace fs = std::filesystem;
 
@@ -13,7 +14,8 @@ using CharMap = std::map<unsigned long, std::string>;
 
 void write_to_json(const Repeats &repeats, const CharMap &charmap, const std::string &json_file);
 
-void process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, unsigned long pos) {
+void process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, unsigned long pos,
+                      int min_repeat_size) {
     unsigned long repeat_end = pos + subtext.size();
     auto it = --charmap.upper_bound(pos);
 
@@ -37,12 +39,14 @@ void process_position(const CharMap &charmap, Repeats &repeats, std::string subt
             pos += actual_size;
         }
 
-        repeats[repeat_subtext].push_back(pos);
+        if (repeat_subtext.size() > min_repeat_size) {
+            repeats[repeat_subtext].push_back(pos);
+        }
     } while (!subtext.empty());
 }
 
 // custom extractor for objects of type RepeatEntry
-void read(std::istream &is, Repeats &repeats, const CharMap &charmap) {
+void read(std::istream &is, Repeats &repeats, const CharMap &charmap, int min_repeat_size) {
     std::istream::sentry s(is);
     std::string line;
 
@@ -92,7 +96,10 @@ void read(std::istream &is, Repeats &repeats, const CharMap &charmap) {
         for (unsigned long i = 0; i < repeat_occurrences; i++) {
             unsigned long pos;
             is >> pos;
-            process_position(charmap, repeats, repeat_subtext, pos);
+
+            if (repeat_size > min_repeat_size) {
+                process_position(charmap, repeats, repeat_subtext, pos, min_repeat_size);
+            }
         }
     }
 }
@@ -102,6 +109,9 @@ int main(int argc, char **argv) {
         std::cout << "\nUsage:\t" << argv[0] << "\t<bwt_output>\t<charmap_file>\t<output_file>\t[<options...>]\n";
         exit(1);
     }
+
+    ArgParser args(argv + 4, argv + argc);
+    int min_repeat_length = std::stoi(args.getCmdArg("-m").value_or("0"));
 
     std::string bwt_file = argv[1];
     std::string charmap_file = argv[2];
@@ -135,10 +145,12 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
+    std::cout << "Parsing BWT output\n";
+
     Repeats repeats;
     try {
         while (bwt) {
-            read(bwt, repeats, charmap);
+            read(bwt, repeats, charmap, min_repeat_length);
         }
     } catch (std::runtime_error &e) {
         std::cerr << "Failed to read repeat entry at position " << bwt.tellg() << " in " << bwt_file << ": "
@@ -146,7 +158,6 @@ int main(int argc, char **argv) {
     }
 
     bwt.close();
-    std::cout << "Finished parsing BWT output\n";
 
     write_to_json(repeats, charmap, json_file);
 }
