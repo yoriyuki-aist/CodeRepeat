@@ -180,9 +180,11 @@ void write_to_json(const Repeats &repeats, const CharMap &charmap, const std::st
         json_out << ": " << charentry.first << ",\n";
     }
 
-    json_out << "\t}\n\t\"repeats\": [\n";
+    json_out << "\t},\n\t\"repeats\": [\n";
 
+    bool print_obj_separator = false;
     for (const auto &repeat : repeats) {
+        if (print_obj_separator) json_out << ",\n";
         json_out << "\t\t{\n\t\t\t\"text\": ";
         write_escaped_string(json_out, repeat.first);
         json_out << ",\n\t\t\t\"positions\": [\n";
@@ -194,7 +196,8 @@ void write_to_json(const Repeats &repeats, const CharMap &charmap, const std::st
             print_separator = true;
         }
 
-        json_out << "\n\t\t\t]\n\t\t}\n";
+        json_out << "\n\t\t\t]\n\t\t}";
+        print_obj_separator = true;
     }
 
     json_out << "\t]\n}";
