@@ -6,6 +6,14 @@
 #include <regex>
 #include <json/json.h>
 #include <unordered_set>
+#include <bits/unordered_set.h>
+
+void
+generate_stats(const Json::Value &root, std::map<unsigned long, std::string> &extensions,
+               std::unordered_map<std::string, std::map<unsigned long, unsigned int>> &occurrences,
+               std::unordered_map<std::string, std::map<unsigned long, unsigned int>> &unique_occurrences);
+
+void print_occurrences(const std::unordered_map<std::string, std::map<unsigned long, unsigned int>> &occurrences);
 
 namespace fs = std::filesystem;
 
@@ -35,11 +43,34 @@ int main(int argc, char **argv) {
     }
 
     // extension -> repeat size -> number of occurrences
-    std::unordered_map<std::string, std::unordered_map<unsigned long, unsigned>> occurrences;
-    std::unordered_map<std::string, std::unordered_map<unsigned long, unsigned>> unique_occurrences;
+    std::unordered_map<std::string, std::map<unsigned long, unsigned>> occurrences;
+    std::unordered_map<std::string, std::map<unsigned long, unsigned>> unique_occurrences;
+    generate_stats(root["repeats"], extensions, occurrences, unique_occurrences);
+
+    std::cout << "Number of occurrences of repeated subsequences by file extension:\n";
+    print_occurrences(occurrences);
+    std::cout << "Number of unique repeated subsequences by file extension:\n";
+    print_occurrences(unique_occurrences);
+
+    std::cout << "\nDone!\n";
+}
+
+void print_occurrences(const std::unordered_map<std::string, std::map<unsigned long, unsigned int>> &occurrences) {
+    for (const auto &ext_entry : occurrences) {
+        std::cout << "File extension: " << ext_entry.first << "\n";
+
+        for (const auto &size_entry : ext_entry.second) {
+            std::cout << "- Size " << size_entry.first << ":\t" << size_entry.second << " occurrence(s)\n";
+        }
+    }
+}
+
+void generate_stats(const Json::Value &repeats, std::map<unsigned long, std::string> &extensions,
+                    std::unordered_map<std::string, std::map<unsigned long, unsigned int>> &occurrences,
+                    std::unordered_map<std::string, std::map<unsigned long, unsigned int>> &unique_occurrences) {
     std::unordered_set<std::string> encountered_exts;
 
-    for (const Json::Value &repeat : root["repeats"]) {
+    for (const Json::Value &repeat : repeats) {
         unsigned size = repeat["text"].asString().size();
 
         for (const Json::Value &pos : repeat["positions"]) {
@@ -53,6 +84,4 @@ int main(int argc, char **argv) {
 
         encountered_exts.clear();
     }
-
-    std::cout << "\nDone!\n";
 }
