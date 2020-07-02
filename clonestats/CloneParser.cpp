@@ -52,7 +52,8 @@ void CloneListener::endObject() {
 
 void CloneListener::value(std::string value) {
     if (state == file_starts) {
-        extensions[std::stoul(value)] = std::filesystem::path(value).extension();
+        std::string ext = std::filesystem::path(last_key).extension();
+        extensions[std::stoul(value)] = ext;
     } else if (state == positions) {
         std::string &source_ext = (--extensions.upper_bound(std::stoul(value)))->second;
         current_repeat.occurrences[source_ext]++;
