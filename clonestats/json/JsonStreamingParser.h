@@ -25,6 +25,7 @@ See more at http://blog.squix.ch and https://github.com/squix78/json-streaming-p
 
 #pragma once
 
+#include <stdexcept>
 #include "JsonListener.h"
 
 #define STATE_START_DOCUMENT     0
@@ -72,6 +73,8 @@ class JsonStreamingParser {
     int characterCounter = 0;
 
     int unicodeHighSurrogate = 0;
+
+    void consumeChar(char c);
 
     void increaseBufferPointer();
 
@@ -127,7 +130,14 @@ class JsonStreamingParser {
 
   public:
     JsonStreamingParser();
+    explicit JsonStreamingParser(bool emitWhitespaces);
     void parse(char c);
     void setListener(JsonListener* listener);
     void reset();
+};
+
+class ParsingError : public std::runtime_error {
+public:
+    explicit ParsingError (const std::string& msg): std::runtime_error(msg) {};
+    explicit ParsingError (const char* msg): std::runtime_error(msg) {};
 };
