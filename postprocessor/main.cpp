@@ -46,7 +46,7 @@ void process_position(const CharMap &charmap, Repeats &repeats, std::string subt
 }
 
 // custom extractor for objects of type RepeatEntry
-void read(std::istream &is, Repeats &repeats, const CharMap &charmap, int min_repeat_size) {
+void read(std::istream &is, Repeats &repeats, const CharMap &charmap, int min_repeat_size, bool skip_blank) {
     std::istream::sentry s(is);
     std::string line;
 
@@ -93,11 +93,14 @@ void read(std::istream &is, Repeats &repeats, const CharMap &charmap, int min_re
             throw std::runtime_error("Expected text positions in fifth Repeat line");
         }
 
+        bool skip = (repeat_size <= min_repeat_size) ||
+                (skip_blank && std::all_of(repeat_subtext.begin(), repeat_subtext.end(), [](char c) {return std::isblank(c);}));
+
         for (unsigned long i = 0; i < repeat_occurrences; i++) {
             unsigned long pos;
             is >> pos;
 
-            if (repeat_size > min_repeat_size) {
+            if (!skip) {
                 process_position(charmap, repeats, repeat_subtext, pos, min_repeat_size);
             }
         }
@@ -112,6 +115,7 @@ int main(int argc, char **argv) {
 
     ArgParser args(argv + 4, argv + argc);
     int min_repeat_length = std::stoi(args.getCmdArg("-m").value_or("0"));
+    bool skip_blank_repeats = args.cmdOptionExists("--skip-blank");
 
     std::string bwt_file = argv[1];
     std::string charmap_file = argv[2];
@@ -150,7 +154,7 @@ int main(int argc, char **argv) {
     Repeats repeats;
     try {
         while (bwt) {
-            read(bwt, repeats, charmap, min_repeat_length);
+            read(bwt, repeats, charmap, min_repeat_length, skip_blank_repeats);
         }
     } catch (std::runtime_error &e) {
         std::cerr << "Failed to read repeat entry at position " << bwt.tellg() << " in " << bwt_file << ": "
@@ -200,7 +204,7 @@ void write_to_json(const Repeats &repeats, const CharMap &charmap, const std::st
         print_obj_separator = true;
     }
 
-    json_out << "\t]\n}";
+    json_out << "\n\t]\n}";
 
     json_out.close();
 }

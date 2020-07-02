@@ -49,13 +49,16 @@ def run_findmaxrep():
 
 
 def run_postprocessor():
-    run([
+    post_args = [
         "{}/bin/postprocessor".format(args.prefix),
         "{}.bwtraw.output".format(intermediary),
         "{}.charmap".format(intermediary),
         output.name,
         "-m", str(args.minrepeat)
-    ])
+    ]
+    if args.skip_blank:
+        post_args.append('--skip-blank')
+    run(post_args)
 
 
 def parse_args():
@@ -70,6 +73,8 @@ def parse_args():
     parser.add_argument('-m', '--min-repeat-length', dest="minrepeat", type=unsigned_int, default=10)
     parser.add_argument('--intermediaries',
                         help='Output directory for intermediary files (default: regular output directory)')
+    parser.add_argument('--skip-blank-repeats', dest='skip_blank', action='store_true',
+                        help='Skip repeated sequences that only contain whitespace (default: false)')
     return parser.parse_args()
 
 
