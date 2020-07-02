@@ -55,7 +55,7 @@ void parse_json(std::map<unsigned long, std::string> &extensions,
     parser.setListener(&listener);
 
     char c;
-    while (json_in >> c) {
+    while (json_in.get(c)) {
         parser.parse(c);
     }
 }
