@@ -27,6 +27,14 @@ def run_preprocessor():
     ]
     if args.extensions:
         pre_args.extend(['--extensions', *args.extensions])
+    if args.nl:
+        pre_args.append('-nl')
+    if args.nl2s:
+        pre_args.append('-nl2s')
+    if args.ns:
+        pre_args.append('-ns')
+    if args.ntr:
+        pre_args.append('-ntr')
     run(pre_args)
     run([
         "{}/bin/bwt".format(args.prefix),
@@ -70,11 +78,24 @@ def parse_args():
                         help='List of file extensions to process (default: process all files)')
     parser.add_argument('-r', '--run', nargs='+', default='all', choices=['pre', 'findrepeats', 'post', 'all'],
                         help='List of steps to run')
-    parser.add_argument('-m', '--min-repeat-length', dest="minrepeat", type=unsigned_int, default=10)
+    parser.add_argument('-m', '--min-repeat-length', dest="minrepeat", type=unsigned_int, default=10,
+                        help='Minimum size of the repeated sequences')
     parser.add_argument('--intermediaries',
                         help='Output directory for intermediary files (default: regular output directory)')
-    parser.add_argument('--skip-blank-repeats', dest='skip_blank', action='store_true',
-                        help='Skip repeated sequences that only contain whitespace (default: false)')
+    pre_group = parser.add_argument_group('Pre-processing', 'Options for the "pre" step. '
+                                                            'Space-producing transformations are applied before space '
+                                                            'normalization.')
+    pre_group.add_argument('--normalize-newlines', dest='nl', action='store_true',
+                           help='Remove carriage returns (\\r) from the text (default: false)')
+    pre_group.add_argument('--newlines-to-spaces', dest='nl2s', action='store_true',
+                           help='Replace carriage returns and line feeds with common spaces (default: false)')
+    pre_group.add_argument('--normalize-spaces', dest='ns', action='store_true',
+                           help='Replace sequences of whitespace with a single common space (default: false)')
+    pre_group.add_argument('--normalize-trailing', dest='ntr', action='store_true',
+                           help='Truncate sequences of whitespace preceding a line feed (default: false)')
+    post_group = parser.add_argument_group('Post-processing', 'Options for the "post" step')
+    post_group.add_argument('--skip-blank-repeats', dest='skip_blank', action='store_true',
+                            help='Skip repeated sequences that only contain whitespace (default: false)')
     return parser.parse_args()
 
 

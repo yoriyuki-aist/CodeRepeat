@@ -93,6 +93,7 @@ void read(std::istream &is, Repeats &repeats, const CharMap &charmap, int min_re
             throw std::runtime_error("Expected text positions in fifth Repeat line");
         }
 
+        // whether this repeated sequence should be skipped (we still have to consume the rest of the input)
         bool skip = (repeat_size <= min_repeat_size) ||
                 (skip_blank && std::all_of(repeat_subtext.begin(), repeat_subtext.end(), [](char c) {return std::isblank(c);}));
 
