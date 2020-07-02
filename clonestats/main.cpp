@@ -8,7 +8,7 @@
 #include "CloneParser.h"
 
 void parse_json(std::map<unsigned long, std::string> &extensions,
-                std::unordered_map<std::string, std::map<unsigned long, Occurrences>> &occurrences,
+                Statistics &stats,
                 std::ifstream &json_in);
 
 namespace fs = std::filesystem;
@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
 
     std::string json_file = argv[1];
     std::map<unsigned long, std::string> extensions;
-    std::unordered_map<std::string, std::map<unsigned long, Occurrences>> occurrences;
+    Statistics stats;
     std::ifstream json_in(json_file);
 
     if (!json_in) {
@@ -29,10 +29,12 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    parse_json(extensions, occurrences, json_in);
+    parse_json(extensions, stats, json_in);
     json_in.close();
 
     std::cout << "Number of occurrences of repeated subsequences by file extension:\n";
+
+    const std::unordered_map<std::string, std::map<unsigned long, OccurrenceCounter>> &occurrences = stats.occurrences;
 
     for (const auto &ext_entry : occurrences) {
         std::cout << "File extension: " << (ext_entry.first.empty() ? "(none)" : ext_entry.first) << "\n";
@@ -44,14 +46,27 @@ int main(int argc, char **argv) {
         }
     }
 
+    std::cout << "Idioms:\n";
+    
+    std::sort(stats.repeats.begin(), stats.repeats.end(), [](RepeatDigest &e1, RepeatDigest &e2) {
+        return e1.occurrences < e2.occurrences;
+    });
+
+    auto idiom_start = (unsigned) (stats.repeats.size() * 0.999);
+    
+    for (unsigned i = idiom_start; i < stats.repeats.size(); i++) {
+        RepeatDigest &repeat = stats.repeats[i];
+        std::cout << "- '" << repeat.text << "': " << repeat.occurrences << "\n";
+    }
+
     std::cout << "\nDone!\n";
 }
 
 void parse_json(std::map<unsigned long, std::string> &extensions,
-                std::unordered_map<std::string, std::map<unsigned long, Occurrences>> &occurrences,
+                Statistics &stats,
                 std::ifstream &json_in) {
     JsonStreamingParser parser;
-    CloneListener listener = CloneListener(extensions, occurrences);
+    CloneListener listener = CloneListener(extensions, stats);
     parser.setListener(&listener);
 
     char c;

@@ -4,25 +4,37 @@
 #include <map>
 #include <unordered_set>
 #include <unordered_map>
+#include <vector>
 #include "json/JsonListener.h"
 
-struct Occurrences {
+using extension = std::string;
+
+struct OccurrenceCounter {
     unsigned unique;
     unsigned total;
+};
+
+struct RepeatDigest {
+    std::string text;
+    unsigned long occurrences;
+};
+
+struct Statistics {
+    // extension -> repeat size -> number of occurrences
+    std::unordered_map<std::string, std::map<unsigned long, OccurrenceCounter>> occurrences;
+    std::vector<RepeatDigest> repeats;
 };
 
 enum State {
     start, root, file_starts, repeats, repeat, positions, done
 };
 
-using extension = std::string;
+static const char *states[] = {"start", "root", "file starts", "repeats", "repeat", "positions", "done"};
 
 struct RepeatData {
     std::string text;
     std::unordered_map<extension, unsigned long> occurrences{};
 };
-
-static const char * states[] = { "start", "root", "file starts", "repeats", "repeat", "positions", "done" };
 
 class CloneListener : public JsonListener {
 private:
@@ -32,13 +44,11 @@ private:
     // position in the concatenated file -> extension of the source file
     // will be empty if the "file_starts" object is not parsed before the "repeats"!
     std::map<unsigned long, std::string> &extensions;
-    // extension -> repeat size -> number of occurrences
-    std::unordered_map<extension, std::map<unsigned long, Occurrences>> &occurrences;
+    Statistics &statistics;
 
 public:
-    CloneListener(std::map<unsigned long, std::string> &extensions,
-                  std::unordered_map<std::string, std::map<unsigned long, Occurrences>> &occurrences) :
-            extensions(extensions), occurrences(occurrences) {};
+    CloneListener(std::map<unsigned long, std::string> &extensions, Statistics &statistics) :
+            extensions(extensions), statistics(statistics) {};
 
     void whitespace(char c) override;
 

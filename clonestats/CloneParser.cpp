@@ -1,7 +1,6 @@
 #include <filesystem>
 
 #include "CloneParser.h"
-#include "json/JsonListener.h"
 
 
 void CloneListener::startDocument() {
@@ -34,13 +33,16 @@ void CloneListener::endObject() {
     } else if (state == repeat) {
         state = repeats;
         unsigned long size = current_repeat.text.size();
+        unsigned count = 0;
         
         for (const auto &entry : current_repeat.occurrences) {
-            auto &occ = occurrences[entry.first][size];
+            auto &occ = statistics.occurrences[entry.first][size];
+            count++;
             occ.total += entry.second;
             occ.unique++;
         }
-        
+
+        statistics.repeats.push_back({current_repeat.text, count});
         current_repeat.occurrences.clear();
         current_repeat.text.clear();
     } else if (state == root) {

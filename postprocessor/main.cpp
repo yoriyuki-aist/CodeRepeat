@@ -1,6 +1,5 @@
 #include <iostream>
 #include <algorithm>
-#include <filesystem>
 #include <set>
 #include <regex>
 #include "stringescape.h"
