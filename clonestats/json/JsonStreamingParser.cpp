@@ -24,6 +24,7 @@ See more at http://blog.squix.ch and https://github.com/squix78/json-streaming-p
 */
 
 #include <string>
+#include <iostream>
 #include "JsonStreamingParser.h"
 
 JsonStreamingParser::JsonStreamingParser() {
@@ -367,18 +368,18 @@ void JsonStreamingParser::processUnicodeCharacter(char c) {
         state = STATE_UNICODE_SURROGATE;
       } else if (codepoint >= 0xDC00 && codepoint <= 0xDFFF) {
         if (unicodeHighSurrogate == -1) {
-           throw ParsingError(/*$this->_line_number, $this->_char_number,*/
+           std::cerr << (/*$this->_line_number, $this->_char_number,*/
            "Missing high surrogate for Unicode low surrogate.");
         }
         int combinedCodePoint = ((unicodeHighSurrogate - 0xD800) * 0x400) + (codepoint - 0xDC00) + 0x10000;
         endUnicodeCharacter(combinedCodePoint);
       } else {
           if (unicodeHighSurrogate != -1) {
-              throw ParsingError(/*$this->_line_number, $this->_char_number,*/
+              std::cerr << (/*$this->_line_number, $this->_char_number,*/
                                      "Invalid low surrogate following Unicode high surrogate.");
-          } else {
+          }/* else {*/
               endUnicodeCharacter(codepoint);
-          }
+          /*}*/
       }
     }
   }
@@ -415,7 +416,7 @@ bool JsonStreamingParser::doesCharArrayContain(const std::string &myArray, int l
 void JsonStreamingParser::endUnicodeSurrogateInterstitial() {
     char unicodeEscape = unicodeEscapeBuffer[unicodeEscapeBufferPos - 1];
     if (unicodeEscape != 'u') {
-       throw ParsingError(/*$this->_line_number, $this->_char_number,*/
+       std::cerr << (/*$this->_line_number, $this->_char_number,*/
        std::string("Expected '\\u' following a Unicode high surrogate. Got: ") +
        unicodeEscape);
     }
@@ -481,8 +482,8 @@ void JsonStreamingParser::endNull() {
     if (value == "null") {
       myListener->value("null");
     } else {
-      // throw new ParsingError($this->_line_number, $this->_char_number,
-      // "Expected 'true'. Got: ".$true);
+       throw ParsingError(/*$this->_line_number, $this->_char_number,*/
+       std::string("Expected 'null'. Got: ") + value);
     }
     bufferPos = 0;
     state = STATE_AFTER_VALUE;
