@@ -18,7 +18,7 @@ def run(cmd: List[str]):
     subprocess.check_call(cmd)
 
 
-def run_preprocessor():
+def run_preprocessor(args, intermediary):
     pre_args = [
         "{}/bin/preprocessor".format(args.prefix),
         args.src,
@@ -47,7 +47,7 @@ def run_preprocessor():
     ])
 
 
-def run_findmaxrep():
+def run_findmaxrep(args, intermediary):
     run([
         "{}/bin/findmaxrep".format(args.prefix),
         "-i", "{}.bwtraw".format(intermediary),
@@ -56,7 +56,7 @@ def run_findmaxrep():
     ])
 
 
-def run_postprocessor():
+def run_postprocessor(args, intermediary, output):
     post_args = [
         "{}/bin/postprocessor".format(args.prefix),
         "{}.bwtraw.output".format(intermediary),
@@ -69,43 +69,11 @@ def run_postprocessor():
     run(post_args)
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="Detects clones in a set of files")
-    parser.add_argument('prefix', help='Location of the cmake build directory for the project')
-    parser.add_argument('src', help='Input source directory to scan')
-    parser.add_argument('-o', '--output', type=argparse.FileType('wb'), help='Output binary file (default: <src>.out)')
-    parser.add_argument('-e', '--extensions', nargs='*',
-                        help='List of file extensions to process (default: process all files)')
-    parser.add_argument('-r', '--run', nargs='+', default='all', choices=['pre', 'findrepeats', 'post', 'all'],
-                        help='List of steps to run')
-    parser.add_argument('-m', '--min-repeat-length', dest="minrepeat", type=unsigned_int, default=10,
-                        help='Minimum size of the repeated sequences')
-    parser.add_argument('--intermediaries',
-                        help='Output directory for intermediary files (default: regular output directory)')
-    pre_group = parser.add_argument_group('Pre-processing', 'Options for the "pre" step. '
-                                                            'Space-producing transformations are applied before space '
-                                                            'normalization.')
-    pre_group.add_argument('--normalize-newlines', dest='nl', action='store_true',
-                           help='Remove carriage returns (\\r) from the text (default: false)')
-    pre_group.add_argument('--newlines-to-spaces', dest='nl2s', action='store_true',
-                           help='Replace carriage returns and line feeds with common spaces (default: false)')
-    pre_group.add_argument('--normalize-spaces', dest='ns', action='store_true',
-                           help='Replace sequences of whitespace with a single common space (default: false)')
-    pre_group.add_argument('--normalize-trailing', dest='ntr', action='store_true',
-                           help='Truncate sequences of whitespace preceding a line feed (default: false)')
-    post_group = parser.add_argument_group('Post-processing', 'Options for the "post" step')
-    post_group.add_argument('--skip-blank-repeats', dest='skip_blank', action='store_true',
-                            help='Skip repeated sequences that only contain whitespace (default: false)')
-    return parser.parse_args()
-
-
-if __name__ == "__main__":
-    args = parse_args()
-
+def run_scan(args):
     if not os.path.exists(args.src):
         raise argparse.ArgumentError("{} does not exist".format(args.src))
 
-    output = args.output or open(args.src + ".out", "wb")
+    output = args.output or open(args.src + ".json", "wb")
 
     if args.intermediaries:
         intermediary = "{}/{}".format(args.intermediaries, os.path.basename(args.src))
@@ -117,10 +85,64 @@ if __name__ == "__main__":
     run_all = "all" in args.run
 
     if run_all or "pre" in args.run:
-        run_preprocessor()
+        run_preprocessor(args, intermediary)
 
     if run_all or "findrepeats" in args.run:
-        run_findmaxrep()
+        run_findmaxrep(args, intermediary)
 
     if run_all or "post" in args.run:
-        run_postprocessor()
+        run_postprocessor(args, intermediary, output)
+
+
+def run_stats(args):
+    run([
+        "{}/bin/clonestats".format(args.prefix),
+        args.input.name
+    ])
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Detects clones in a set of files")
+    parser.add_argument('prefix', help='Location of the cmake build directory for the project')
+    subparsers = parser.add_subparsers(dest='cmd', metavar='{scan,stats}', required=True)
+    scan_parser = subparsers.add_parser('scan')
+    scan_parser.add_argument('src', help='Input source directory to scan')
+    scan_parser.add_argument('-o', '--output', type=argparse.FileType('w'),
+                             help='Output JSON file (default: <src>.json)')
+    scan_parser.add_argument('-e', '--extensions', nargs='*',
+                             help='List of file extensions to process (default: process all files)')
+    scan_parser.add_argument('-r', '--run', nargs='+', default='all', choices=['pre', 'findrepeats', 'post', 'all'],
+                             help='List of steps to run')
+    scan_parser.add_argument('-m', '--min-repeat-length', dest="minrepeat", type=unsigned_int, default=10,
+                             help='Minimum size of the repeated sequences')
+    scan_parser.add_argument('--intermediaries',
+                             help='Output directory for intermediary files (default: regular output directory)')
+    pre_group = scan_parser.add_argument_group('Pre-processing', 'Options for the "pre" step. '
+                                                                 'Space-producing transformations are applied before '
+                                                                 'space normalization.')
+    pre_group.add_argument('--normalize-newlines', dest='nl', action='store_true',
+                           help='Remove carriage returns (\\r) from the text (default: false)')
+    pre_group.add_argument('--newlines-to-spaces', dest='nl2s', action='store_true',
+                           help='Replace carriage returns and line feeds with common spaces (default: false)')
+    pre_group.add_argument('--normalize-spaces', dest='ns', action='store_true',
+                           help='Replace sequences of whitespace with a single common space (default: false)')
+    pre_group.add_argument('--normalize-trailing', dest='ntr', action='store_true',
+                           help='Truncate sequences of whitespace preceding a line feed (default: false)')
+    post_group = scan_parser.add_argument_group('Post-processing', 'Options for the "post" step')
+    post_group.add_argument('--skip-blank-repeats', dest='skip_blank', action='store_true',
+                            help='Skip repeated sequences that only contain whitespace (default: false)')
+    scan_parser.set_defaults(launch=run_scan)
+    stat_parser = subparsers.add_parser('stats')
+    stat_parser.add_argument('input', type=argparse.FileType('r'), help='JSON file emitted by the scan process')
+    stat_parser.set_defaults(launch=run_stats)
+
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    args.launch(args)
+
+
+if __name__ == "__main__":
+    main()
