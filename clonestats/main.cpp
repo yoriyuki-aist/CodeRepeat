@@ -6,6 +6,7 @@
 #include <regex>
 #include <json/JsonStreamingParser.h>
 #include "CloneParser.h"
+#include "../util/ArgParser.h"
 
 void parse_json(std::map<unsigned long, std::string> &extensions,
                 Statistics &stats,
@@ -18,6 +19,8 @@ int main(int argc, char **argv) {
         std::cout << "\nUsage:\t" << argv[0] << "\t<clones_json>\t[<options...>]\n";
         exit(1);
     }
+
+    ArgParser args(argv, argv + argc);
 
     std::string json_file = argv[1];
     std::map<unsigned long, std::string> extensions;
@@ -46,17 +49,21 @@ int main(int argc, char **argv) {
         }
     }
 
-    std::cout << "Idioms:\n";
-    
-    std::sort(stats.repeats.begin(), stats.repeats.end(), [](RepeatDigest &e1, RepeatDigest &e2) {
-        return e1.occurrences < e2.occurrences;
-    });
+    std::optional<std::string> idiom_rate = args.getCmdArg("--idioms");
 
-    auto idiom_start = (unsigned) (stats.repeats.size() * 0.999);
-    
-    for (unsigned i = idiom_start; i < stats.repeats.size(); i++) {
-        RepeatDigest &repeat = stats.repeats[i];
-        std::cout << "- '" << repeat.text << "': " << repeat.occurrences << "\n";
+    if (idiom_rate) {
+        std::cout << "Idioms:\n";
+
+        std::sort(stats.repeats.begin(), stats.repeats.end(), [](RepeatDigest &e1, RepeatDigest &e2) {
+            return e1.occurrences < e2.occurrences;
+        });
+
+        auto idiom_start = (unsigned) (stats.repeats.size() * (1.0 - std::stod(*idiom_rate)));
+
+        for (unsigned i = idiom_start; i < stats.repeats.size(); i++) {
+            RepeatDigest &repeat = stats.repeats[i];
+            std::cout << "- '" << repeat.text << "': " << repeat.occurrences << "\n";
+        }
     }
 
     std::cout << "\nDone!\n";

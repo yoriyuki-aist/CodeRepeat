@@ -95,10 +95,15 @@ def run_scan(args):
 
 
 def run_stats(args):
-    run([
+    stats_args = [
         "{}/bin/clonestats".format(args.prefix),
         args.input.name
-    ])
+    ]
+
+    if args.idioms:
+        stats_args.extend(['--idioms', str(args.idioms)])
+
+    run(stats_args)
 
 
 def parse_args():
@@ -106,7 +111,8 @@ def parse_args():
     parser.add_argument('--prefix', help='Location of the cmake build directory for the project',
                         default=os.path.dirname(__file__))
     subparsers = parser.add_subparsers(dest='cmd', metavar='{scan,stats}', required=True)
-    scan_parser = subparsers.add_parser('scan')
+    scan_parser = subparsers.add_parser('scan',
+                                        help='Scan a source repository for clones and output a JSON description')
     scan_parser.add_argument('src', help='Input source directory to scan')
     scan_parser.add_argument('-o', '--output', type=argparse.FileType('w'),
                              help='Output JSON file (default: <src>.json)')
@@ -135,6 +141,8 @@ def parse_args():
     scan_parser.set_defaults(launch=run_scan)
     stat_parser = subparsers.add_parser('stats')
     stat_parser.add_argument('input', type=argparse.FileType('r'), help='JSON file emitted by the scan process')
+    stat_parser.add_argument('--idioms', type=float, metavar='IDIOM_RATE',
+                             help='Find the top [0-1] fraction of most repeated sequences (default: no idiom search)')
     stat_parser.set_defaults(launch=run_stats)
 
     return parser.parse_args()
