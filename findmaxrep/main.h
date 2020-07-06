@@ -1,7 +1,7 @@
 #ifndef _main_h_
 #define _main_h_
 
-static const bool emitUtf8 = emitUTF8;
+static const bool emitUtf8 = true;
 
 void master(CWaveletTree<uchar_t> *wt_bwt, CWaveletTree<uint32_t> *wt_lcp, uint64_t bwt_pos,
             CBitTree *bt_lcp, CBitVector *bv_bwt, CBitVector *sam_bv, uint32_t *sample, FILE *fp_output);
