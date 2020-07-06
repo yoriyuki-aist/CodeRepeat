@@ -100,6 +100,9 @@ def run_stats(args):
         args.input.name
     ]
 
+    if args.output:
+        stats_args.extend(['-o', args.output.name])
+
     if args.idioms:
         stats_args.extend(['--idioms', str(args.idioms)])
 
@@ -141,6 +144,7 @@ def parse_args():
     scan_parser.set_defaults(launch=run_scan)
     stat_parser = subparsers.add_parser('stats')
     stat_parser.add_argument('input', type=argparse.FileType('r'), help='JSON file emitted by the scan process')
+    stat_parser.add_argument('-o', '--output', type=argparse.FileType('w'), help='Output CSV file (default: stdout)')
     stat_parser.add_argument('--idioms', type=float, metavar='IDIOM_RATE',
                              help='Find the top [0-1] fraction of most repeated sequences (default: no idiom search)')
     stat_parser.set_defaults(launch=run_stats)

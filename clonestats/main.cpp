@@ -12,6 +12,9 @@ void parse_json(std::map<unsigned long, std::string> &extensions,
                 Statistics &stats,
                 std::ifstream &json_in);
 
+void print_results(const std::unordered_map<std::string, std::map<unsigned long, OccurrenceCounter>> &occurrences,
+                   std::ostream &out);
+
 namespace fs = std::filesystem;
 
 int main(int argc, char **argv) {
@@ -23,6 +26,7 @@ int main(int argc, char **argv) {
     ArgParser args(argv, argv + argc);
 
     std::string json_file = argv[1];
+    std::optional<std::string> out_file = args.getCmdArg("-o");
     std::map<unsigned long, std::string> extensions;
     Statistics stats;
     std::ifstream json_in(json_file);
@@ -38,14 +42,11 @@ int main(int argc, char **argv) {
     // Number of occurrences of repeated subsequences by file extension
     const std::unordered_map<std::string, std::map<unsigned long, OccurrenceCounter>> &occurrences = stats.occurrences;
 
-    std::cout << "File extension, Size, Occurrence(s), unique sequence(s)\n";
-    for (const auto &ext_entry : occurrences) {
-        for (const auto &size_entry : ext_entry.second) {
-            std::cout << (ext_entry.first.empty() ? "(none)" : ext_entry.first) << ',';
-            std::cout << size_entry.first << "," << size_entry.second.total << ",";
-            std::cout << size_entry.second.unique;
-            std::cout << "\n";
-        }
+    if (out_file) {
+        std::ofstream out(*out_file);
+        print_results(occurrences, out);
+    } else {
+        print_results(occurrences, std::cout);
     }
 
     std::optional<std::string> idiom_rate = args.getCmdArg("--idioms");
@@ -64,8 +65,19 @@ int main(int argc, char **argv) {
             std::cout << "- '" << repeat.text << "': " << repeat.occurrences << "\n";
         }
     }
+}
 
-    std::cout << "\nDone!\n";
+void print_results(const std::unordered_map<std::string, std::map<unsigned long, OccurrenceCounter>> &occurrences,
+                   std::ostream &out) {
+    out << "File extension, Size, Occurrence(s), unique sequence(s)\n";
+    for (const auto &ext_entry : occurrences) {
+        for (const auto &size_entry : ext_entry.second) {
+            out << (ext_entry.first.empty() ? "(none)" : ext_entry.first) << ',';
+            out << size_entry.first << "," << size_entry.second.total << ",";
+            out << size_entry.second.unique;
+            out << "\n";
+        }
+    }
 }
 
 void parse_json(std::map<unsigned long, std::string> &extensions,
