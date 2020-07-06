@@ -103,7 +103,8 @@ def run_stats(args):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Detects clones in a set of files")
-    parser.add_argument('prefix', help='Location of the cmake build directory for the project')
+    parser.add_argument('--prefix', help='Location of the cmake build directory for the project',
+                        default=os.path.dirname(__file__))
     subparsers = parser.add_subparsers(dest='cmd', metavar='{scan,stats}', required=True)
     scan_parser = subparsers.add_parser('scan')
     scan_parser.add_argument('src', help='Input source directory to scan')
@@ -115,7 +116,7 @@ def parse_args():
                              help='List of steps to run')
     scan_parser.add_argument('-m', '--min-repeat-length', dest="minrepeat", type=unsigned_int, default=10,
                              help='Minimum size of the repeated sequences')
-    scan_parser.add_argument('--intermediaries',
+    scan_parser.add_argument('-i', '--intermediaries',
                              help='Output directory for intermediary files (default: regular output directory)')
     pre_group = scan_parser.add_argument_group('Pre-processing', 'Options for the "pre" step. '
                                                                  'Space-producing transformations are applied before '
