@@ -28,23 +28,22 @@ int main(int argc, char **argv) {
     std::ifstream json_in(json_file);
 
     if (!json_in) {
-        std::cout << "output file open fails. exit.\n";
+        std::cerr << "output file open fails. exit.\n";
         exit(1);
     }
 
     parse_json(extensions, stats, json_in);
     json_in.close();
 
-    std::cout << "Number of occurrences of repeated subsequences by file extension:\n";
-
+    // Number of occurrences of repeated subsequences by file extension
     const std::unordered_map<std::string, std::map<unsigned long, OccurrenceCounter>> &occurrences = stats.occurrences;
 
+    std::cout << "File extension, Size, Occurrence(s), unique sequence(s)\n";
     for (const auto &ext_entry : occurrences) {
-        std::cout << "File extension: " << (ext_entry.first.empty() ? "(none)" : ext_entry.first) << "\n";
-
         for (const auto &size_entry : ext_entry.second) {
-            std::cout << "- Size " << size_entry.first << ":\t" << size_entry.second.total << " occurrence(s) \t-\t";
-            std::cout << size_entry.second.unique << " unique sequence(s)";
+            std::cout << (ext_entry.first.empty() ? "(none)" : ext_entry.first) << ',';
+            std::cout << size_entry.first << "," << size_entry.second.total << ",";
+            std::cout << size_entry.second.unique;
             std::cout << "\n";
         }
     }
