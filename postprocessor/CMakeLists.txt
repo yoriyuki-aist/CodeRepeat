@@ -10,3 +10,4 @@ add_executable(postprocessor
 		stringescape.cpp)
 
 target_compile_definitions(postprocessor PRIVATE EMIT_UTF_8_JSON)
+#target_compile_definitions(postprocessor PRIVATE EXPORT_TEXT_LENGTH) # add a "length" field to the emitted JSON

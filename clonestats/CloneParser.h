@@ -33,7 +33,7 @@ static const char *states[] = {"start", "root", "file starts", "repeats", "repea
 
 struct RepeatData {
     std::string text;
-    unsigned length;
+    long length{-1};
     std::unordered_map<extension, unsigned long> occurrences{};
 };
 

@@ -1,9 +1,5 @@
 #include <iostream>
-#include <fstream>
 #include <algorithm>
-#include <filesystem>
-#include <set>
-#include <regex>
 #include <json/JsonStreamingParser.h>
 #include "CloneParser.h"
 #include "../util/ArgParser.h"

@@ -34,7 +34,7 @@ void CloneListener::endObject() {
         state = repeats;
         unsigned long size = current_repeat.text.size();
 
-        if (size != current_repeat.length) {
+        if (current_repeat.length >= 0 && size != current_repeat.length) {
             throw std::runtime_error(std::string("Invalid length from parsed JSON: ") +
             " should be " + std::to_string(current_repeat.length) +
             " chars, got " + std::to_string(current_repeat.text.length()));

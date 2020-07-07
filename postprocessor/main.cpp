@@ -191,7 +191,9 @@ void write_to_json(const Repeats &repeats, const CharMap &charmap, const std::st
         if (print_obj_separator) json_out << ",\n";
         json_out << "\t\t{\n\t\t\t\"text\": ";
         write_escaped_string(json_out, repeat.first);
+#ifdef EXPORT_TEXT_LENGTH
         json_out << ",\n\t\t\t\"length\": " << repeat.first.length();
+#endif
         json_out << ",\n\t\t\t\"positions\": [\n";
 
         bool print_separator = false;
