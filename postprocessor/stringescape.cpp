@@ -113,7 +113,7 @@ void write_escaped_string(std::ofstream &out, const std::string &str) {
             default: {
 #ifdef EMIT_UTF_8_JSON
                 unsigned codepoint = static_cast<unsigned char>(*c);
-                if (codepoint < 0x20) {
+                if (codepoint < 0x20 || codepoint == 0x7f) {
                     appendHex(out, codepoint);
                 } else {
                     appendRaw(out, codepoint);

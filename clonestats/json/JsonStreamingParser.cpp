@@ -41,7 +41,10 @@ void JsonStreamingParser::reset() {
     bufferPos = 0;
     unicodeEscapeBufferPos = 0;
     unicodeBufferPos = 0;
+    unicodeHighSurrogate = -1;
     characterCounter = 0;
+    line = 1;
+    charInLine = 1;
 }
 
 void JsonStreamingParser::setListener(JsonListener* listener) {
@@ -50,6 +53,13 @@ void JsonStreamingParser::setListener(JsonListener* listener) {
 
 void JsonStreamingParser::parse(char c) {
     consumeChar(c);
+
+    if (c == '\n') {
+        line++;
+        charInLine = 0;
+    }
+
+    charInLine++;
     characterCounter++;
   }
 
@@ -80,7 +90,7 @@ void JsonStreamingParser::consumeChar(char c) {
                 endString();
             } else if (c == '\\') {
                 state = STATE_START_ESCAPE;
-            } else if ((c < 0x1f) || (c == 0x7f)) {
+            } else if ((((unsigned char)c) < 0x1f) || (c == 0x7f)) {
                 throw ParsingError(std::string("Unescaped control character encountered: ") + c + " at position" + std::to_string(characterCounter));
             } else {
                 buffer[bufferPos] = c;
@@ -358,28 +368,26 @@ void JsonStreamingParser::processUnicodeCharacter(char c) {
 
     if (unicodeBufferPos == 4) {
       int codepoint = getHexArrayAsDecimal(unicodeBuffer, unicodeBufferPos);
-/*
-      endUnicodeCharacter(codepoint);
-      return;
-*/
+
       if (codepoint >= 0xD800 && codepoint < 0xDC00) {
         unicodeHighSurrogate = codepoint;
         unicodeBufferPos = 0;
         state = STATE_UNICODE_SURROGATE;
       } else if (codepoint >= 0xDC00 && codepoint <= 0xDFFF) {
         if (unicodeHighSurrogate == -1) {
-           std::cerr << (/*$this->_line_number, $this->_char_number,*/
+           throw ParsingError(/*$this->_line_number, $this->_char_number,*/
            "Missing high surrogate for Unicode low surrogate.");
         }
+
         int combinedCodePoint = ((unicodeHighSurrogate - 0xD800) * 0x400) + (codepoint - 0xDC00) + 0x10000;
         endUnicodeCharacter(combinedCodePoint);
       } else {
           if (unicodeHighSurrogate != -1) {
-              std::cerr << (/*$this->_line_number, $this->_char_number,*/
+              throw ParsingError(/*$this->_line_number, $this->_char_number,*/
                                      "Invalid low surrogate following Unicode high surrogate.");
-          }/* else {*/
-              endUnicodeCharacter(codepoint);
-          /*}*/
+          }
+
+          endUnicodeCharacter(codepoint);
       }
     }
   }
@@ -390,7 +398,7 @@ bool JsonStreamingParser::isHexCharacter(char c) {
 int JsonStreamingParser::getHexArrayAsDecimal(const char hexArray[], int length) {
     int result = 0;
     for (int i = 0; i < length; i++) {
-      char current = hexArray[length - i - 1];
+      char current = hexArray[i];
       int value = 0;
       if (current >= 'a' && current <= 'f') {
         value = current - 'a' + 10;
@@ -399,7 +407,7 @@ int JsonStreamingParser::getHexArrayAsDecimal(const char hexArray[], int length)
       } else if (current >= '0' && current <= '9') {
         value = current - '0';
       }
-      result += value * 16^i;
+      result = result * 16 + value;
     }
     return result;
   }
@@ -517,7 +525,6 @@ void JsonStreamingParser::startNumber(char c) {
 
 void JsonStreamingParser::endUnicodeCharacter(int codepoint) {
     convertCodepointToCharacter(codepoint);
-    increaseBufferPointer();
     unicodeBufferPos = 0;
     unicodeHighSurrogate = -1;
     state = STATE_IN_STRING;

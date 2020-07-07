@@ -9,4 +9,4 @@ add_executable(postprocessor
         main.cpp
 		stringescape.cpp)
 
-#target_compile_definitions(postprocessor PUBLIC EMIT_UTF_8_JSON)
+target_compile_definitions(postprocessor PRIVATE EMIT_UTF_8_JSON)

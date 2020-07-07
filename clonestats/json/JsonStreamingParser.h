@@ -71,8 +71,9 @@ class JsonStreamingParser {
     int unicodeBufferPos = 0;
 
     int characterCounter = 0;
+    int line, charInLine;
 
-    int unicodeHighSurrogate = 0;
+    int unicodeHighSurrogate = -1;
 
     void consumeChar(char c);
 
