@@ -33,6 +33,13 @@ void CloneListener::endObject() {
     } else if (state == repeat) {
         state = repeats;
         unsigned long size = current_repeat.text.size();
+
+        if (size != current_repeat.length) {
+            throw std::runtime_error(std::string("Invalid length from parsed JSON: ") + current_repeat.text +
+            " should be " + std::to_string(current_repeat.length) +
+            " chars (got " + std::to_string(current_repeat.text.length()) + ")");
+        }
+
         unsigned count = 0;
         
         for (const auto &entry : current_repeat.occurrences) {
@@ -61,6 +68,8 @@ void CloneListener::value(std::string value) {
         current_repeat.occurrences[source_ext]++;
     } else if (state == repeat && last_key == "text") {
         current_repeat.text = value;
+    } else if (state == repeat && last_key == "length") {
+        current_repeat.length = std::stol(value);
     } else if (state != root) {
         throw std::runtime_error("Unexpected value after key " + last_key + " in state " + states[state]);
     }
