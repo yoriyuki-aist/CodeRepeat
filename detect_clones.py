@@ -145,8 +145,8 @@ def parse_args():
     stat_parser = subparsers.add_parser('stats')
     stat_parser.add_argument('input', type=argparse.FileType('r'), help='JSON file emitted by the scan process')
     stat_parser.add_argument('-o', '--output', type=argparse.FileType('w'), help='Output CSV file (default: stdout)')
-    stat_parser.add_argument('--idioms', type=float, metavar='IDIOM_RATE',
-                             help='Find the top [0-1] fraction of most repeated sequences (default: no idiom search)')
+    stat_parser.add_argument('--idioms', type=int, metavar='IDIOM_OCC',
+                             help='Find the repeated sequences appearing more than IDIOM_OCC (default: no idiom search)')
     stat_parser.set_defaults(launch=run_stats)
 
     return parser.parse_args()
