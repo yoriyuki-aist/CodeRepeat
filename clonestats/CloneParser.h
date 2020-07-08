@@ -22,7 +22,8 @@ struct RepeatDigest {
 struct Statistics {
     // extension -> repeat size -> number of occurrences
     std::unordered_map<std::string, std::map<unsigned long, OccurrenceCounter>> occurrences;
-    std::vector<RepeatDigest> repeats;
+    // subtext -> number of occurrences
+    std::unordered_map<std::string, unsigned long> repeats;
 };
 
 enum State {

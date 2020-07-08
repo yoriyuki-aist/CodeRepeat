@@ -12,7 +12,7 @@ void print_occurrence_counts(const std::unordered_map<std::string, std::map<unsi
                              std::ostream &out);
 
 void
-print_idioms(std::vector<RepeatDigest> repeats, const std::string &idiom_occ, std::ostream &out);
+print_idioms(const std::unordered_map<std::string, unsigned long>& repeats, const std::string &idiom_occ, std::ostream &out);
 
 void print_results(const Statistics &stats, const std::optional<std::string> &idiom_occ, std::ostream &out);
 
@@ -61,18 +61,15 @@ void print_results(const Statistics &stats, const std::optional<std::string> &id
 }
 
 void
-print_idioms(std::vector<RepeatDigest> repeats, const std::string &idiom_occ, std::ostream &out) {
-    std::sort(repeats.begin(), repeats.end(), [](auto &e1, auto &e2) {
-        return e1.occurrences < e2.occurrences;
-    });
+print_idioms(const std::unordered_map<std::string, unsigned long>& repeats, const std::string &idiom_occ, std::ostream &out) {
+    for (const auto &repeat : repeats) {
+        std::string subtext = repeat.first;
+        unsigned long occurrences = repeat.second;
+        int min_occ = std::stoi(idiom_occ);
 
-    for (unsigned i = 0; i < repeats.size(); i++) {
-        const RepeatDigest &repeat = repeats[i];
-        std::string subtext = repeat.text;
-
-        if (repeat.occurrences >= std::stoi(idiom_occ)) {
+        if (occurrences >= min_occ) {
             //TODO: escape the subtext
-            out << "Idioms, " << "occurrences:" << repeat.occurrences << "\n";
+            out << "Idioms, " << "occurrences:" << occurrences << "\n";
             out << "Subtext starts --------------------------------------------\n";
             out << subtext << "\n";
             out << "Subtext ends   --------------------------------------------\n";

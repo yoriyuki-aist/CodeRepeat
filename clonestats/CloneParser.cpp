@@ -41,15 +41,19 @@ void CloneListener::endObject() {
         }
 
         unsigned count = 0;
-        
+        unsigned long &existing = statistics.repeats[current_repeat.text];
+
         for (const auto &entry : current_repeat.occurrences) {
             auto &occ = statistics.occurrences[entry.first][size];
             count++;
             occ.total += entry.second;
-            occ.unique++;
+
+            if (!existing) {    // FIXME this assumes there is no new extension since first appearance
+                occ.unique++;
+            }
         }
 
-        statistics.repeats.push_back({current_repeat.text, count});
+        existing += count;
         current_repeat.occurrences.clear();
         current_repeat.text.clear();
     } else if (state == root) {

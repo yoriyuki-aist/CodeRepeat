@@ -11,8 +11,6 @@ using path = std::string;
 using Repeats = std::unordered_map<path, std::vector<unsigned long>>;
 using CharMap = std::map<unsigned long, std::string>;
 
-void write_to_json(const Repeats &repeats, const CharMap &charmap, const std::string &json_file);
-
 void process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, unsigned long pos,
                       int min_repeat_size) {
     unsigned long repeat_end = pos + subtext.size();
@@ -145,32 +143,14 @@ int main(int argc, char **argv) {
     std::ifstream bwt(bwt_file);
 
     if (!bwt) {
-        std::cout << "bwt output file open fails. exit.\n";
+        std::cerr << "bwt output file open fails. exit.\n";
         exit(1);
     }
 
-    std::cout << "Parsing BWT output\n";
-
-    Repeats repeats;
-    try {
-        while (bwt) {
-            read(bwt, repeats, charmap, min_repeat_length, skip_blank_repeats);
-        }
-    } catch (std::runtime_error &e) {
-        std::cerr << "Failed to read repeat entry at position " << bwt.tellg() << " in " << bwt_file << ": "
-                  << e.what();
-    }
-
-    bwt.close();
-
-    write_to_json(repeats, charmap, json_file);
-}
-
-void write_to_json(const Repeats &repeats, const CharMap &charmap, const std::string &json_file) {
     std::ofstream json_out(json_file);
 
     if (!json_out) {
-        std::cout << "JSON output file open fails. exit.\n";
+        std::cerr << "JSON output file open fails. exit.\n";
         exit(1);
     }
 
@@ -187,27 +167,42 @@ void write_to_json(const Repeats &repeats, const CharMap &charmap, const std::st
     json_out << "\t},\n\t\"repeats\": [\n";
 
     bool print_obj_separator = false;
-    for (const auto &repeat : repeats) {
-        if (print_obj_separator) json_out << ",\n";
-        json_out << "\t\t{\n\t\t\t\"text\": ";
-        write_escaped_string(json_out, repeat.first);
+
+    try {
+        while (bwt) {
+            Repeats repeats;
+            read(bwt, repeats, charmap, min_repeat_length, skip_blank_repeats);
+
+            for (const auto &repeat : repeats) {
+                if (print_obj_separator) json_out << ",\n";
+
+                json_out << "\t\t{\n\t\t\t\"text\": ";
+                write_escaped_string(json_out, repeat.first);
 #ifdef EXPORT_TEXT_LENGTH
-        json_out << ",\n\t\t\t\"length\": " << repeat.first.length();
+                json_out << ",\n\t\t\t\"length\": " << repeat.first.length();
 #endif
-        json_out << ",\n\t\t\t\"positions\": [\n";
+                json_out << ",\n\t\t\t\"positions\": [\n";
+                bool print_separator = false;
 
-        bool print_separator = false;
-        for (unsigned long pos : repeat.second) {
-            if (print_separator) json_out << ",\n";
-            json_out << "\t\t\t\t" << pos;
-            print_separator = true;
+                for (unsigned long pos : repeat.second) {
+                    if (print_separator) json_out << ",\n";
+                    json_out << "\t\t\t\t" << pos;
+                    print_separator = true;
+                }
+
+                json_out << "\n\t\t\t]\n\t\t}";
+                print_obj_separator = true;
+            }
         }
-
-        json_out << "\n\t\t\t]\n\t\t}";
-        print_obj_separator = true;
+    } catch (std::runtime_error &e) {
+        std::cerr << "Failed to read repeat entry at position " << bwt.tellg() << " in " << bwt_file << ": "
+                  << e.what();
     }
+
+    bwt.close();
 
     json_out << "\n\t]\n}";
 
     json_out.close();
 }
+
