@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
         bool skip_next_space = false;
         unsigned long space_count = 0;
 
-        for (char c = inbuf->sbumpc(); c != EOF; c = inbuf->sbumpc()) {
+        for (int c = inbuf->sbumpc(); c != EOF; c = inbuf->sbumpc()) {
             // process data in buffer
             if (normalize_newlines) {
                 if (c == '\r') {
@@ -130,11 +130,10 @@ int main(int argc, char **argv) {
                 }
             }
 
-            if (c == '\0') {
-                break;
-            }
             outbuf->sputc (c);
         }
+
+        std::cout << in.fail() << in.eof() << "\n";
 
         if (eof) {
             outbuf->sputc(EOF_CHAR);
