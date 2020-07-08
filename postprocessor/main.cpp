@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <set>
 #include <regex>
-#include "stringescape.h"
+#include "../util/stringescape.h"
 #include "../util/ArgParser.h"
 
 namespace fs = std::filesystem;

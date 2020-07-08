@@ -3,6 +3,7 @@
 #include <json/JsonStreamingParser.h>
 #include "CloneParser.h"
 #include "../util/ArgParser.h"
+#include "../util/stringescape.h"
 
 void parse_json(std::map<unsigned long, std::string> &extensions,
                 Statistics &stats,
@@ -68,10 +69,10 @@ print_idioms(const std::unordered_map<std::string, unsigned long>& repeats, cons
         int min_occ = std::stoi(idiom_occ);
 
         if (occurrences >= min_occ) {
-            //TODO: escape the subtext
             out << "Idioms, " << "occurrences:" << occurrences << "\n";
             out << "Subtext starts --------------------------------------------\n";
-            out << subtext << "\n";
+            write_escaped_string(out, subtext);
+            out << "\n";
             out << "Subtext ends   --------------------------------------------\n";
         }
     }
