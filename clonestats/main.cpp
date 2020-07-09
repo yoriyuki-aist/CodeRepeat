@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
     std::ifstream json_in(json_file);
 
     if (!json_in) {
-        std::cerr << "output file open fails. exit.\n";
+        std::cerr << "json input file open fails. exit.\n";
         exit(1);
     }
 
@@ -45,6 +45,12 @@ int main(int argc, char **argv) {
 
     if (out_file) {
         std::ofstream out(*out_file);
+
+        if (!out) {
+            std::cerr << "output file open fails. exit.\n";
+            exit(1);
+        }
+
         print_results(stats, idiom_occ, out);
     } else {
         print_results(stats, idiom_occ, std::cout);

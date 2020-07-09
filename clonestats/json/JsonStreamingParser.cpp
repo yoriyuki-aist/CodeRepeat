@@ -90,8 +90,8 @@ void JsonStreamingParser::consumeChar(char c) {
                 endString();
             } else if (c == '\\') {
                 state = STATE_START_ESCAPE;
-            } else if ((((unsigned char)c) < 0x1f) || (c == 0x7f)) {
-                throw ParsingError(std::string("Unescaped control character encountered: ") + c + " at position" + std::to_string(characterCounter));
+            } else if (std::iscntrl(c)) {
+                throw ParsingError(std::string("Unescaped control character encountered: ") + c + "(" + std::to_string((int)c) + ") at position" + std::to_string(characterCounter));
             } else {
                 buffer[bufferPos] = c;
                 increaseBufferPointer();
