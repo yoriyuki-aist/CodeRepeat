@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <set>
 #include <regex>
+#include <unordered_set>
 #include "../util/stringescape.h"
 #include "../util/ArgParser.h"
 
@@ -11,10 +12,25 @@ using path = std::string;
 using Repeats = std::unordered_map<path, std::vector<unsigned long>>;
 using CharMap = std::map<unsigned long, std::string>;
 
-void process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, unsigned long pos,
-                      int min_repeat_size) {
+struct ProcessingOptions {
+    int min_repeat_length;
+    bool skip_blank_repeats;
+    bool skip_null_repeats;
+    std::string bwt_file;
+    std::string json_file;
+};
+
+void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_set<std::string> &splits,
+            const ProcessingOptions &opts);
+
+void emit_repeat(std::ostream &json_out, const std::string &subtext, const std::vector<unsigned long> &positions);
+
+void
+process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, unsigned long pos, int min_repeat_size,
+                 std::unordered_set<std::string> &splits) {
     unsigned long repeat_end = pos + subtext.size();
     auto it = --charmap.upper_bound(pos);
+    bool split = false;
 
     do {
         // name of the source file where the start of the repeat is found
@@ -34,16 +50,23 @@ void process_position(const CharMap &charmap, Repeats &repeats, std::string subt
             repeat_subtext = subtext.substr(0, actual_size);
             subtext = subtext.substr(actual_size);
             pos += actual_size;
+            split = true;
         }
 
         if (repeat_subtext.size() > min_repeat_size) {
             repeats[repeat_subtext].push_back(pos);
+
+            if (split) {
+                splits.insert(repeat_subtext);
+            }
         }
     } while (!subtext.empty());
 }
 
 // custom extractor for objects of type RepeatEntry
-void read(std::istream &is, Repeats &repeats, const CharMap &charmap, int min_repeat_size, bool skip_blank, bool skip_null) {
+void
+read(std::istream &is, Repeats &repeats, const CharMap &charmap, std::unordered_set<std::string> &splits,
+     const ProcessingOptions &opts) {
     std::istream::sentry s(is);
     std::string line;
 
@@ -91,16 +114,19 @@ void read(std::istream &is, Repeats &repeats, const CharMap &charmap, int min_re
         }
 
         // whether this repeated sequence should be skipped (we still have to consume the rest of the input)
-        bool skip = (repeat_size <= min_repeat_size) ||
-                (skip_blank && std::all_of(repeat_subtext.begin(), repeat_subtext.end(), [](char c) {return std::isblank(c) || std::iscntrl(c);})) ||
-                (skip_null && std::all_of(repeat_subtext.begin(), repeat_subtext.end(), [](char c) {return c == 0;}));
+        bool skip = (repeat_size <= opts.min_repeat_length) ||
+                    (opts.skip_blank_repeats && std::all_of(repeat_subtext.begin(), repeat_subtext.end(), [](char c) {
+                        return std::isblank(c) || std::iscntrl(c);
+                    })) ||
+                    (opts.skip_null_repeats &&
+                     std::all_of(repeat_subtext.begin(), repeat_subtext.end(), [](char c) { return c == 0; }));
 
         for (unsigned long i = 0; i < repeat_occurrences; i++) {
             unsigned long pos;
             is >> pos;
 
             if (!skip) {
-                process_position(charmap, repeats, repeat_subtext, pos, min_repeat_size);
+                process_position(charmap, repeats, repeat_subtext, pos, opts.min_repeat_length, splits);
             }
         }
     }
@@ -113,9 +139,6 @@ int main(int argc, char **argv) {
     }
 
     ArgParser args(argv + 4, argv + argc);
-    int min_repeat_length = std::stoi(args.getCmdArg("-m").value_or("0"));
-    bool skip_blank_repeats = args.cmdOptionExists("--skip-blank");
-    bool skip_null_repeats = args.cmdOptionExists("--skip-null");
 
     std::string bwt_file = argv[1];
     std::string charmap_file = argv[2];
@@ -142,21 +165,44 @@ int main(int argc, char **argv) {
 
     charmap_in.close();
 
-    std::ifstream bwt(bwt_file);
+    std::unordered_set<std::string> splits;
+    ProcessingOptions opts{
+            std::stoi(args.getCmdArg("-m").value_or("0")),
+            args.cmdOptionExists("--skip-blank"),
+            args.cmdOptionExists("--skip-null"),
+            bwt_file,
+            json_file
+    };
+
+    // first pass: collect repeated subtexts that get split between files
+    // if there is no such repeated subtext, this is the only pass
+    filter(charmap, splits, opts);
+
+    // second pass: we know which subtexts come from splits, we can guarantee they all get merged
+    if (!splits.empty()) {
+        filter(charmap, splits, opts);
+    }
+
+    return 0;
+}
+
+void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_set<std::string> &splits,
+            const ProcessingOptions &opts) {
+    std::ifstream bwt(opts.bwt_file);
 
     if (!bwt) {
         std::cerr << "bwt output file open fails. exit.\n";
         exit(1);
     }
 
-    std::ofstream json_out(json_file);
+    std::ofstream json_out(opts.json_file);
 
     if (!json_out) {
         std::cerr << "JSON output file open fails. exit.\n";
         exit(1);
     }
 
-    std::cout << "Writing JSON to " << json_file << "\n";
+    std::cout << "Writing JSON to " << opts.json_file << "\n";
 
     json_out << "{\n\t\"version\": 0,\n\t\"file_starts\": {\n";
 
@@ -170,35 +216,34 @@ int main(int argc, char **argv) {
 
     bool print_obj_separator = false;
 
+    Repeats late;
+
     try {
         while (bwt) {
             Repeats repeats;
-            read(bwt, repeats, charmap, min_repeat_length, skip_blank_repeats, skip_null_repeats);
+            read(bwt, repeats, charmap, splits, opts);
 
             for (const auto &repeat : repeats) {
-                if (print_obj_separator) json_out << ",\n";
-
-                json_out << "\t\t{\n\t\t\t\"text\": ";
-                write_escaped_string(json_out, repeat.first);
-#ifdef EXPORT_TEXT_LENGTH
-                json_out << ",\n\t\t\t\"length\": " << repeat.first.length();
-#endif
-                json_out << ",\n\t\t\t\"positions\": [\n";
-                bool print_separator = false;
-
-                for (unsigned long pos : repeat.second) {
-                    if (print_separator) json_out << ",\n";
-                    json_out << "\t\t\t\t" << pos;
-                    print_separator = true;
+                // if the subtext can come from a split, we wait until the end to merge every position
+                if (splits.find(repeat.first) == splits.end()) {
+                    if (print_obj_separator) json_out << ",\n";
+                    emit_repeat(json_out, repeat.first, repeat.second);
+                    print_obj_separator = true;
+                } else {
+                    std::vector<unsigned long> &late_positions = late[repeat.first];
+                    late_positions.insert(late_positions.begin(), repeat.second.begin(), repeat.second.end());
                 }
-
-                json_out << "\n\t\t\t]\n\t\t}";
-                print_obj_separator = true;
             }
         }
     } catch (std::runtime_error &e) {
-        std::cerr << "Failed to read repeat entry at position " << bwt.tellg() << " in " << bwt_file << ": "
+        std::cerr << "Failed to read repeat entry at position " << bwt.tellg() << " in " << opts.bwt_file << ": "
                   << e.what();
+    }
+
+    for (const auto &repeat : late) {
+        if (print_obj_separator) json_out << ",\n";
+        emit_repeat(json_out, repeat.first, repeat.second);
+        print_obj_separator = true;
     }
 
     bwt.close();
@@ -206,5 +251,24 @@ int main(int argc, char **argv) {
     json_out << "\n\t]\n}";
 
     json_out.close();
+}
+
+void
+emit_repeat(std::ostream &json_out, const std::string &subtext, const std::vector<unsigned long> &positions) {
+    json_out << "\t\t{\n\t\t\t\"text\": ";
+    write_escaped_string(json_out, subtext);
+#ifdef EXPORT_TEXT_LENGTH
+    json_out << ",\n\t\t\t\"length\": " << subtext.length();
+#endif
+    json_out << ",\n\t\t\t\"positions\": [\n";
+    bool print_separator = false;
+
+    for (unsigned long pos : positions) {
+        if (print_separator) json_out << ",\n";
+        json_out << "\t\t\t\t" << pos;
+        print_separator = true;
+    }
+
+    json_out << "\n\t\t\t]\n\t\t}";
 }
 
