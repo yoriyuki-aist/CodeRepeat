@@ -43,7 +43,7 @@ void process_position(const CharMap &charmap, Repeats &repeats, std::string subt
 }
 
 // custom extractor for objects of type RepeatEntry
-void read(std::istream &is, Repeats &repeats, const CharMap &charmap, int min_repeat_size, bool skip_blank) {
+void read(std::istream &is, Repeats &repeats, const CharMap &charmap, int min_repeat_size, bool skip_blank, bool skip_null) {
     std::istream::sentry s(is);
     std::string line;
 
@@ -92,7 +92,8 @@ void read(std::istream &is, Repeats &repeats, const CharMap &charmap, int min_re
 
         // whether this repeated sequence should be skipped (we still have to consume the rest of the input)
         bool skip = (repeat_size <= min_repeat_size) ||
-                (skip_blank && std::all_of(repeat_subtext.begin(), repeat_subtext.end(), [](char c) {return std::isblank(c);}));
+                (skip_blank && std::all_of(repeat_subtext.begin(), repeat_subtext.end(), [](char c) {return std::isblank(c) || std::iscntrl(c);})) ||
+                (skip_null && std::all_of(repeat_subtext.begin(), repeat_subtext.end(), [](char c) {return c == 0;}));
 
         for (unsigned long i = 0; i < repeat_occurrences; i++) {
             unsigned long pos;
@@ -114,6 +115,7 @@ int main(int argc, char **argv) {
     ArgParser args(argv + 4, argv + argc);
     int min_repeat_length = std::stoi(args.getCmdArg("-m").value_or("0"));
     bool skip_blank_repeats = args.cmdOptionExists("--skip-blank");
+    bool skip_null_repeats = args.cmdOptionExists("--skip-null");
 
     std::string bwt_file = argv[1];
     std::string charmap_file = argv[2];
@@ -171,7 +173,7 @@ int main(int argc, char **argv) {
     try {
         while (bwt) {
             Repeats repeats;
-            read(bwt, repeats, charmap, min_repeat_length, skip_blank_repeats);
+            read(bwt, repeats, charmap, min_repeat_length, skip_blank_repeats, skip_null_repeats);
 
             for (const auto &repeat : repeats) {
                 if (print_obj_separator) json_out << ",\n";

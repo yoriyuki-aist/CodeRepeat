@@ -66,6 +66,8 @@ def run_postprocessor(args, intermediary, output):
     ]
     if args.skip_blank:
         post_args.append('--skip-blank')
+    if args.skip_null:
+        post_args.append('--skip-null')    
     run(post_args)
 
 
@@ -139,8 +141,10 @@ def parse_args():
     pre_group.add_argument('--normalize-trailing', dest='ntr', action='store_true',
                            help='Truncate sequences of whitespace preceding a line feed (default: false)')
     post_group = scan_parser.add_argument_group('Post-processing', 'Options for the "post" step')
-    post_group.add_argument('--skip-blank-repeats', dest='skip_blank', action='store_true',
-                            help='Skip repeated sequences that only contain whitespace (default: false)')
+    post_group.add_argument('--skip-blank', dest='skip_blank', action='store_true',
+                            help='Skip repeated sequences that only contain whitespace and control code (default: false)')
+    post_group.add_argument('--skip-null', dest='skip_null', action='store_true',
+                            help='Skip repeated sequences that only contain null (default: false)')
     scan_parser.set_defaults(launch=run_scan)
     stat_parser = subparsers.add_parser('stats')
     stat_parser.add_argument('input', type=argparse.FileType('r'), help='JSON file emitted by the scan process')
