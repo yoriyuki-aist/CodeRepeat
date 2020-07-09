@@ -41,11 +41,11 @@ void CloneListener::endObject() {
         }
 
         unsigned count = 0;
-        unsigned long &existing = statistics.repeats[current_repeat.text];
+        unsigned long existing = statistics.repeats[current_repeat.text];
 
         for (const auto &entry : current_repeat.occurrences) {
             auto &occ = statistics.occurrences[entry.first][size];
-            count++;
+            count += entry.second;
             occ.total += entry.second;
 
             if (!existing) {    // FIXME this assumes there is no new extension since first appearance
@@ -53,7 +53,7 @@ void CloneListener::endObject() {
             }
         }
 
-        existing += count;
+        statistics.repeats[current_repeat.text] += count;
         current_repeat.occurrences.clear();
         current_repeat.text.clear();
     } else if (state == root) {
