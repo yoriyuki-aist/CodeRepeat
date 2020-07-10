@@ -69,7 +69,12 @@ void print_results(const Statistics &stats, const std::optional<std::string> &id
 
 void
 print_idioms(const std::unordered_map<std::string, unsigned long>& repeats, const std::string &idiom_occ, std::ostream &out) {
-    for (const auto &repeat : repeats) {
+    std::vector<std::pair<std::string, unsigned long>> sorted_repeats(repeats.begin(), repeats.end());
+    std::sort(sorted_repeats.begin(), sorted_repeats.end(), [](const auto &r1, const auto &r2) {
+        return r1.second < r2.second;
+    });
+
+    for (const auto &repeat : sorted_repeats) {
         std::string subtext = repeat.first;
         unsigned long occurrences = repeat.second;
         int min_occ = std::stoi(idiom_occ);
