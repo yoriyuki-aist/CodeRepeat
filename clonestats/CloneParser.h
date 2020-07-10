@@ -14,11 +14,16 @@ struct OccurrenceCounter {
     unsigned total;
 };
 
+struct RepeatDigest {
+    std::string text;
+    unsigned long occurrences;
+};
+
 struct Statistics {
     // extension -> repeat size -> number of occurrences
     std::unordered_map<std::string, std::map<unsigned long, OccurrenceCounter>> occurrences;
     // subtext -> number of occurrences
-    std::unordered_map<std::string, unsigned long> repeats;
+    std::vector<RepeatDigest> repeats;
 };
 
 enum State {

@@ -13,7 +13,7 @@ void print_occurrence_counts(const std::unordered_map<std::string, std::map<unsi
                              std::ostream &out);
 
 void
-print_idioms(const std::unordered_map<std::string, unsigned long>& repeats, const std::string &idiom_occ, std::ostream &out);
+print_idioms(std::vector<RepeatDigest> repeats, int min_occ, std::ostream &out);
 
 void print_results(const Statistics &stats, const std::optional<std::string> &idiom_occ, std::ostream &out);
 
@@ -55,12 +55,14 @@ int main(int argc, char **argv) {
     } else {
         print_results(stats, idiom_occ, std::cout);
     }
+
+    return 0;
 }
 
 void print_results(const Statistics &stats, const std::optional<std::string> &idiom_occ, std::ostream &out) {
     if (idiom_occ) {
         // Print list of repeated sequences with their frequency
-        print_idioms(stats.repeats, *idiom_occ, out);
+        print_idioms(stats.repeats, std::stoi(*idiom_occ), out);
     } else {
         // Print number of occurrences of repeated subsequences by file extension
         print_occurrence_counts(stats.occurrences, out);
@@ -68,16 +70,14 @@ void print_results(const Statistics &stats, const std::optional<std::string> &id
 }
 
 void
-print_idioms(const std::unordered_map<std::string, unsigned long>& repeats, const std::string &idiom_occ, std::ostream &out) {
-    std::vector<std::pair<std::string, unsigned long>> sorted_repeats(repeats.begin(), repeats.end());
-    std::sort(sorted_repeats.begin(), sorted_repeats.end(), [](const auto &r1, const auto &r2) {
-        return r1.second < r2.second;
+print_idioms(std::vector<RepeatDigest> repeats, int min_occ, std::ostream &out) {
+    std::sort(repeats.begin(), repeats.end(), [](const auto &r1, const auto &r2) {
+        return r1.occurrences < r2.occurrences;
     });
 
-    for (const auto &repeat : sorted_repeats) {
-        std::string subtext = repeat.first;
-        unsigned long occurrences = repeat.second;
-        int min_occ = std::stoi(idiom_occ);
+    for (const auto &repeat : repeats) {
+        std::string subtext = repeat.text;
+        unsigned long occurrences = repeat.occurrences;
 
         if (occurrences >= min_occ) {
             out << "Idioms, " << "occurrences:" << occurrences << "\n";
