@@ -9,6 +9,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_subdirectory(bwt-juha)
 add_subdirectory(findmaxrep)
+add_subdirectory(findrepset)
 add_subdirectory(converter)
 add_subdirectory(preprocessor)
 add_subdirectory(postprocessor)
