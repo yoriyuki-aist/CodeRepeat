@@ -52,6 +52,7 @@ def run_findmaxrep(args, intermediary):
         "{}/bin/findmaxrep".format(args.prefix),
         "-i", "{}.bwtraw".format(intermediary),
         "-P", "{}.bwtpos".format(intermediary),
+        "-o", "{}.output.txt".format(intermediary),
         "-m", str(args.minrepeat)
     ])
 
@@ -61,6 +62,7 @@ def run_findrepset(args, intermediary):
         "{}/bin/findrepset".format(args.prefix),
         "-nm",  # find maximal repeats, not supermaximal ones
         "-ml", str(args.minrepeat),
+        "-o", "{}.output.txt".format(intermediary),
         "{}.concat".format(intermediary)
     ])
 
@@ -68,7 +70,7 @@ def run_findrepset(args, intermediary):
 def run_postprocessor(args, intermediary, output):
     post_args = [
         "{}/bin/postprocessor".format(args.prefix),
-        "{}.bwtraw.output".format(intermediary),
+        "{}.output.txt".format(intermediary),
         "{}.charmap".format(intermediary),
         output.name,
         "-m", str(args.minrepeat)

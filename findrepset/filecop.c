@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include "bwt.h"
 #include "lcp.h"
@@ -33,6 +34,7 @@ int main(int argc, char** argv) {
 	TIME_RUN_INIT
 	uint *p, *r, *h, *m, *mc, tn;
 	uchar *s, *st, *t;
+	char *outfile;
 	uchar **filenames;
 	uint sn,n,i,j,ml = 1, nm = 0, c = 0, v = 0, at = 0, time = 0;
 	int ps = -1;
@@ -42,6 +44,7 @@ int main(int argc, char** argv) {
 	forsn(i, 1, argc) {
 		if (0) {}
 		else cmdline_opt_2(i, "-ml") { ml = atoi(argv[i]); }
+		else cmdline_opt_2(i, "-o") { outfile = argv[i]; }
 		else cmdline_var(i, "nm", nm)
 		else cmdline_var(i, "c", c)
 		else cmdline_var(i, "v", v)
@@ -86,6 +89,8 @@ int main(int argc, char** argv) {
 	
 	forsn(i, 1, at){
 		t = loadStrFileExtraSpace((const char*)filenames[i], &tn, 1);
+		if (t == NULL) continue; // Maybe immediately exit the program ?
+
 		t[tn++] = 254;
 		if (v) {
 			fprintf(stderr, "Rival %u\n", i);
@@ -132,9 +137,18 @@ int main(int argc, char** argv) {
 	ord.r = r;
 	ord.s = s;
 	ord.a = 0;
-	ord.fp = stdout;
+    if (outfile == NULL) {
+        ord.fp = stdout;
+    } else {
+        ord.fp = fopen(outfile, "wb");
+        if (!ord.fp) {
+            fprintf(stderr, "[%s]\n", strerror(errno));
+    		perror("fopen");
+            exit(1);
+        }
+    }
 
-	output_callback *callback = time? output_nothing: output_findmaxrep;
+    output_callback *callback = time? output_nothing: output_findmaxrep;
 
 	if (!c) {
 		fdata.data = (void*) &ord;
