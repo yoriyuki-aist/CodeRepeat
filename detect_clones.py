@@ -36,6 +36,9 @@ def run_preprocessor(args, intermediary):
     if args.ntr:
         pre_args.append('-ntr')
     run(pre_args)
+
+
+def run_findmaxrep(args, intermediary):
     run([
         "{}/bin/bwt".format(args.prefix),
         "{}.concat".format(intermediary),
@@ -45,14 +48,20 @@ def run_preprocessor(args, intermediary):
         "{}/bin/converter".format(args.prefix),
         "{}.bwt".format(intermediary)
     ])
-
-
-def run_findmaxrep(args, intermediary):
     run([
         "{}/bin/findmaxrep".format(args.prefix),
         "-i", "{}.bwtraw".format(intermediary),
         "-P", "{}.bwtpos".format(intermediary),
         "-m", str(args.minrepeat)
+    ])
+
+
+def run_findrepset(args, intermediary):
+    run([
+        "{}/bin/findrepset".format(args.prefix),
+        "-nm",  # find maximal repeats, not supermaximal ones
+        "-ml", str(args.minrepeat),
+        "{}.concat".format(intermediary)
     ])
 
 
@@ -90,7 +99,10 @@ def run_scan(args):
         run_preprocessor(args, intermediary)
 
     if run_all or "findrepeats" in args.run:
-        run_findmaxrep(args, intermediary)
+        if args.alt_finder:
+            run_findmaxrep(args, intermediary)
+        else:
+            run_findrepset(args, intermediary)
 
     if run_all or "post" in args.run:
         run_postprocessor(args, intermediary, output)
@@ -140,6 +152,9 @@ def parse_args():
                            help='Replace sequences of whitespace with a single common space (default: false)')
     pre_group.add_argument('--normalize-trailing', dest='ntr', action='store_true',
                            help='Truncate sequences of whitespace preceding a line feed (default: false)')
+    find_group = scan_parser.add_argument_group('Repeat Finding', 'Options for the "findmaxrep" step.')
+    find_group.add_argument('--alt-finder', dest='alt_finder', action='store_true',
+                           help='Use the alternative (slower) repeat finder (default: false)')
     post_group = scan_parser.add_argument_group('Post-processing', 'Options for the "post" step')
     post_group.add_argument('--skip-blank', dest='skip_blank', action='store_true',
                             help='Skip repeated sequences that only contain whitespace and control code (default: false)')
