@@ -30,6 +30,7 @@ void CloneListener::startObject() {
 void CloneListener::endObject() {
     if (state == file_starts) {
         state = root;
+        statistics.similarity_matrix.reset(new double[files.size() * files.size()]);
     } else if (state == repeat) {
         state = repeats;
         unsigned long size = current_repeat.text.size();
@@ -41,13 +42,21 @@ void CloneListener::endObject() {
         }
 
         unsigned count = 0;
+        std::unordered_set<extension> encountered_exts;
 
-        for (const auto &entry : current_repeat.occurrences) {
-            auto &occ = statistics.occurrences[entry.first][size];
-            count += entry.second;
-            occ.total += entry.second;
+        for (const FileData &source_file : current_repeat.occurrences) {
+            auto &occ = statistics.occurrences[source_file.ext][size];
+            count++;
+            occ.total++;
+
             // Only works if the entries in the JSON are unique themselves (no 2 entries with the same text)
-            occ.unique++;
+            if (encountered_exts.insert(source_file.ext).second) {
+                occ.unique++;
+            }
+
+            for (const FileData &source2 : current_repeat.occurrences) {
+                statistics.similarity_matrix[source_file.id * files.size() + source2.id] += (double) size;
+            }
         }
 
         statistics.repeats.push_back({current_repeat.text, count});
@@ -62,11 +71,12 @@ void CloneListener::endObject() {
 
 void CloneListener::value(std::string value) {
     if (state == file_starts) {
+        unsigned id = files.size();
         std::string ext = std::filesystem::path(last_key).extension();
-        extensions[std::stoul(value)] = ext;
+        files[std::stoul(value)] = {id, ext};
     } else if (state == positions) {
-        std::string &source_ext = (--extensions.upper_bound(std::stoul(value)))->second;
-        current_repeat.occurrences[source_ext]++;
+        FileData &source = (--files.upper_bound(std::stoul(value)))->second;
+        current_repeat.occurrences.push_back(source);
     } else if (state == repeat && last_key == "text") {
         current_repeat.text = value;
     } else if (state == repeat && last_key == "length") {

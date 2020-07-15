@@ -5,7 +5,7 @@
 #include "../util/ArgParser.h"
 #include "../util/stringescape.h"
 
-void parse_json(std::map<unsigned long, std::string> &extensions,
+void parse_json(std::map<unsigned long, FileData> &extensions,
                 Statistics &stats,
                 std::ifstream &json_in);
 
@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
 
     std::string json_file = argv[1];
     std::optional<std::string> out_file = args.getCmdArg("-o");
-    std::map<unsigned long, std::string> extensions;
+    std::map<unsigned long, FileData> extensions;
     Statistics stats;
     std::ifstream json_in(json_file);
 
@@ -102,7 +102,7 @@ void print_occurrence_counts(const std::unordered_map<std::string, std::map<unsi
     }
 }
 
-void parse_json(std::map<unsigned long, std::string> &extensions,
+void parse_json(std::map<unsigned long, FileData> &extensions,
                 Statistics &stats,
                 std::ifstream &json_in) {
     JsonStreamingParser parser;
