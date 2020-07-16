@@ -4,6 +4,7 @@
 #include <map>
 #include <unordered_set>
 #include <unordered_map>
+#include <memory>
 #include <vector>
 #include "json/JsonListener.h"
 

@@ -124,7 +124,7 @@ void write_escaped_string(std::ostream &out, const std::string &str) {
                 }
 #else
                 unsigned codepoint = utf8ToCodepoint(c, end); // modifies `c`
-                if (std::iscntrl((int) codepoint)) {
+                if (std::iscntrl((unsigned char) codepoint)) {
                     appendHex(out, codepoint);
                 } else if (codepoint < 0x80) {
                     appendRaw(out, codepoint);
