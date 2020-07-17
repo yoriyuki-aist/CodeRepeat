@@ -18,6 +18,7 @@ struct OccurrenceCounter {
 
 struct FileData {
     unsigned id;
+    std::string name;
     std::string ext;
 };
 
@@ -26,13 +27,40 @@ struct RepeatDigest {
     unsigned long occurrences;
 };
 
+template<typename T>
+class SimpleMatrix {
+private:
+    std::unique_ptr<T[]> matrix;
+    unsigned n{};
+public:
+    explicit SimpleMatrix(unsigned size) : n(size), matrix(new T[size * size]) {};
+
+    [[nodiscard]] T &at(unsigned x, unsigned y) {
+        if (x >= n || y >= n)
+            throw std::length_error(
+                    std::string("Invalid index [") + std::to_string(x) + ", " + std::to_string(y) + "]");
+        return matrix[x * n + y];
+    }
+
+    [[nodiscard]] const T &at(unsigned x, unsigned y) const {
+        if (x >= n || y >= n)
+            throw std::length_error(
+                    std::string("Invalid index [") + std::to_string(x) + ", " + std::to_string(y) + "]");
+        return matrix[x * n + y];
+    }
+
+    [[nodiscard]] unsigned size() const {
+        return n;
+    }
+};
+
 struct Statistics {
     // extension -> repeat size -> number of occurrences
     std::unordered_map<std::string, std::map<unsigned long, OccurrenceCounter>> occurrences;
     // subtext -> number of occurrences
     std::vector<RepeatDigest> repeats;
-    // file id -> file id -> similarity
-    std::unique_ptr<double[]> similarity_matrix{nullptr};
+    // [file id, file id] -> similarity
+    SimpleMatrix<double> similarity_matrix{0};
 };
 
 enum State {

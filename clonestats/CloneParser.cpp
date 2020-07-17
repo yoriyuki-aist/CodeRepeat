@@ -30,7 +30,7 @@ void CloneListener::startObject() {
 void CloneListener::endObject() {
     if (state == file_starts) {
         state = root;
-        statistics.similarity_matrix.reset(new double[files.size() * files.size()]);
+        statistics.similarity_matrix = SimpleMatrix<double>(files.size());
     } else if (state == repeat) {
         state = repeats;
         unsigned long size = current_repeat.text.size();
@@ -55,7 +55,7 @@ void CloneListener::endObject() {
             }
 
             for (const FileData &source2 : current_repeat.occurrences) {
-                statistics.similarity_matrix[source_file.id * files.size() + source2.id] += (double) size;
+                statistics.similarity_matrix.at(source_file.id, source2.id) += (double) size;
             }
         }
 
@@ -73,7 +73,7 @@ void CloneListener::value(std::string value) {
     if (state == file_starts) {
         unsigned id = files.size();
         std::string ext = std::filesystem::path(last_key).extension();
-        files[std::stoul(value)] = {id, ext};
+        files[std::stoul(value)] = {id, last_key, ext};
     } else if (state == positions) {
         FileData &source = (--files.upper_bound(std::stoul(value)))->second;
         current_repeat.occurrences.push_back(source);

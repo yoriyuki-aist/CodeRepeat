@@ -15,7 +15,11 @@ void print_occurrence_counts(const std::unordered_map<std::string, std::map<unsi
 void
 print_idioms(std::vector<RepeatDigest> repeats, int min_occ, std::ostream &out);
 
-void print_results(const Statistics &stats, const std::optional<std::string> &idiom_occ, std::ostream &out);
+void print_similarity_matrix(const SimpleMatrix<double> &similarity_matrix, const std::map<unsigned long, FileData> &files,
+                             std::ostream &out);
+
+void print_results(const std::map<unsigned long, FileData> &files, const Statistics &stats,
+                   const std::optional<std::string> &idiom_occ, bool compute_distances, std::ostream &out);
 
 namespace fs = std::filesystem;
 
@@ -29,7 +33,7 @@ int main(int argc, char **argv) {
 
     std::string json_file = argv[1];
     std::optional<std::string> out_file = args.getCmdArg("-o");
-    std::map<unsigned long, FileData> extensions;
+    std::map<unsigned long, FileData> files;
     Statistics stats;
     std::ifstream json_in(json_file);
 
@@ -38,10 +42,11 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    parse_json(extensions, stats, json_in);
+    parse_json(files, stats, json_in);
     json_in.close();
 
     std::optional<std::string> idiom_occ = args.getCmdArg("--idioms");
+    bool compute_distance = args.cmdOptionExists("--distance");
 
     if (out_file) {
         std::ofstream out(*out_file);
@@ -51,18 +56,21 @@ int main(int argc, char **argv) {
             exit(1);
         }
 
-        print_results(stats, idiom_occ, out);
+        print_results(files, stats, idiom_occ, compute_distance, out);
     } else {
-        print_results(stats, idiom_occ, std::cout);
+        print_results(files, stats, idiom_occ, compute_distance, std::cout);
     }
 
     return 0;
 }
 
-void print_results(const Statistics &stats, const std::optional<std::string> &idiom_occ, std::ostream &out) {
+void print_results(const std::map<unsigned long, FileData> &files, const Statistics &stats,
+                   const std::optional<std::string> &idiom_occ, bool compute_distances, std::ostream &out) {
     if (idiom_occ) {
         // Print list of repeated sequences with their frequency
         print_idioms(stats.repeats, std::stoi(*idiom_occ), out);
+    } else if (compute_distances) {
+        print_similarity_matrix(stats.similarity_matrix, files, out);
     } else {
         // Print number of occurrences of repeated subsequences by file extension
         print_occurrence_counts(stats.occurrences, out);
@@ -112,6 +120,27 @@ void parse_json(std::map<unsigned long, FileData> &extensions,
     char c;
     while (json_in.get(c)) {
         parser.parse(c);
+    }
+}
+
+void
+print_similarity_matrix(const SimpleMatrix<double> &similarity_matrix, const std::map<unsigned long, FileData> &files,
+                        std::ostream &out) {
+    bool sep = false;
+    for (const auto &f : files) {
+        if (sep) out << ",";
+        else sep = true;
+        out << f.second.name;
+    }
+    out << "\n";
+    for (int i = 0; i < similarity_matrix.size(); i++) {
+        sep = false;
+        for (int j = 0; j < similarity_matrix.size(); j++) {
+            if (sep) out << ",";
+            else sep = true;
+            out << 1. / similarity_matrix.at(i, j);
+        }
+        out << "\n";
     }
 }
 
