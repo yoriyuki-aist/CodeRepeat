@@ -60,7 +60,7 @@ struct Statistics {
     // subtext -> number of occurrences
     std::vector<RepeatDigest> repeats;
     // [file id, file id] -> similarity
-    SimpleMatrix<double> similarity_matrix{0};
+    SimpleMatrix<unsigned long> similarity_matrix{0};
 };
 
 enum State {

@@ -15,7 +15,7 @@ void print_occurrence_counts(const std::unordered_map<std::string, std::map<unsi
 void
 print_idioms(std::vector<RepeatDigest> repeats, int min_occ, std::ostream &out);
 
-void print_similarity_matrix(const SimpleMatrix<double> &similarity_matrix, const std::map<unsigned long, FileData> &files,
+void print_similarity_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, const std::map<unsigned long, FileData> &files,
                              std::ostream &out);
 
 void print_results(const std::map<unsigned long, FileData> &files, const Statistics &stats,
@@ -124,21 +124,29 @@ void parse_json(std::map<unsigned long, FileData> &extensions,
 }
 
 void
-print_similarity_matrix(const SimpleMatrix<double> &similarity_matrix, const std::map<unsigned long, FileData> &files,
+print_similarity_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, const std::map<unsigned long, FileData> &files,
                         std::ostream &out) {
     bool sep = false;
+
     for (const auto &f : files) {
         if (sep) out << ",";
         else sep = true;
         out << f.second.name;
     }
+
     out << "\n";
+
     for (int i = 0; i < similarity_matrix.size(); i++) {
         sep = false;
         for (int j = 0; j < similarity_matrix.size(); j++) {
             if (sep) out << ",";
             else sep = true;
-            out << 1. / similarity_matrix.at(i, j);
+            unsigned long val = similarity_matrix.at(i, j);
+            if (val == 0) {
+                out << 1;
+            } else {
+                out << 1. / (double) val;
+            }
         }
         out << "\n";
     }
