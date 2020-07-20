@@ -1,6 +1,7 @@
 #include <iostream>
 #include <algorithm>
 #include <json/JsonStreamingParser.h>
+#include <tgmath.h>
 #include "CloneParser.h"
 #include "../util/ArgParser.h"
 #include "../util/stringescape.h"
@@ -15,7 +16,7 @@ void print_occurrence_counts(const std::unordered_map<std::string, std::map<unsi
 void
 print_idioms(std::vector<RepeatDigest> repeats, int min_occ, std::ostream &out);
 
-void print_similarity_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, const std::map<unsigned long, FileData> &files,
+void print_similarity_matrix(const SymmetricMatrix<unsigned long> &similarity_matrix, const std::map<unsigned long, FileData> &files,
                              std::ostream &out);
 
 void print_results(const std::map<unsigned long, FileData> &files, const Statistics &stats,
@@ -124,28 +125,35 @@ void parse_json(std::map<unsigned long, FileData> &extensions,
 }
 
 void
-print_similarity_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, const std::map<unsigned long, FileData> &files,
+print_similarity_matrix(const SymmetricMatrix<unsigned long> &similarity_matrix, const std::map<unsigned long, FileData> &files,
                         std::ostream &out) {
-    bool sep = false;
+    
+    const auto &concat_end = files.crbegin();  // special last pair
+    if (!concat_end->second.name.empty()) throw std::runtime_error("Last file mapping should use the empty string as name");
+
+    unsigned long file_lengths[files.size()];
+    unsigned long last_file_start{};
 
     for (const auto &f : files) {
-        if (sep) out << ",";
-        else sep = true;
+        unsigned int file_id = f.second.id;
+        if (file_id > 0) {
+            out << ",";
+            file_lengths[file_id - 1] = f.first - last_file_start;
+        }
         out << f.second.name;
+        last_file_start = f.first;
     }
 
     out << "\n";
 
     for (int i = 0; i < similarity_matrix.size(); i++) {
-        sep = false;
         for (int j = 0; j < similarity_matrix.size(); j++) {
-            if (sep) out << ",";
-            else sep = true;
+            if (j > 0) out << ",";  // no separator for the first value of the line
             unsigned long val = similarity_matrix.at(i, j);
             if (val == 0) {
-                out << 1;
+                out << std::numeric_limits<double>::infinity();
             } else {
-                out << 1. / (double) val;
+                out << log((double) (file_lengths[i] + file_lengths[j])) - log((double) val);
             }
         }
         out << "\n";

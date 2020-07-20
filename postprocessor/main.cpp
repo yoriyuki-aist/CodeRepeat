@@ -206,13 +206,17 @@ void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_
 
     json_out << "{\n\t\"version\": 0,\n\t\"file_starts\": {\n";
 
+    bool sep = false;
     for (const auto &charentry : charmap) {
+        if (sep) json_out << ",\n";
+        else sep = true;
+
         json_out << "\t\t";
         write_escaped_string(json_out, charentry.second);
-        json_out << ": " << charentry.first << ",\n";
+        json_out << ": " << charentry.first;
     }
 
-    json_out << "\t},\n\t\"repeats\": [\n";
+    json_out << "\n\t},\n\t\"repeats\": [\n";
 
     bool print_obj_separator = false;
 

@@ -30,7 +30,7 @@ void CloneListener::startObject() {
 void CloneListener::endObject() {
     if (state == file_starts) {
         state = root;
-        statistics.similarity_matrix = SimpleMatrix<unsigned long>(files.size());
+        statistics.similarity_matrix = SymmetricMatrix<unsigned long>(files.size());
     } else if (state == repeat) {
         state = repeats;
         unsigned long size = current_repeat.text.size();
@@ -43,19 +43,30 @@ void CloneListener::endObject() {
 
         unsigned count = 0;
         std::unordered_set<extension> encountered_exts;
+        std::unordered_map<unsigned, unsigned> repeats_per_file;
 
         for (const FileData &source_file : current_repeat.occurrences) {
             auto &occ = statistics.occurrences[source_file.ext][size];
             count++;
             occ.total++;
+            repeats_per_file[source_file.id]++;
 
             // Only works if the entries in the JSON are unique themselves (no 2 entries with the same text)
             if (encountered_exts.insert(source_file.ext).second) {
                 occ.unique++;
             }
 
-            for (const FileData &source2 : current_repeat.occurrences) {
-                statistics.similarity_matrix.at(source_file.id, source2.id) += size;
+            // similarity[x, y] += (size of the repeat) * (combined number of occurrences in x and y)
+            for (unsigned file_id : current_repeat.file_ids) {
+                statistics.similarity_matrix.at(source_file.id, file_id) += size;
+            }
+        }
+
+        // add the length of the repeat to every intersection in the matrix
+        for (const auto &repeat1 : repeats_per_file) {
+            for (const auto &repeat2 : repeats_per_file) {
+                // similarity[x, y] += (size of the repeat) * (combined number of occurrences in x and y)
+                statistics.similarity_matrix.at(repeat1.first, repeat2.first) += size * (repeat1.second + repeat2.second);
             }
         }
 
@@ -73,10 +84,12 @@ void CloneListener::value(std::string value) {
     if (state == file_starts) {
         unsigned id = files.size();
         std::string ext = std::filesystem::path(last_key).extension();
-        files[std::stoul(value)] = {id, last_key, ext};
+        unsigned long file_start = std::stoul(value);
+        files[file_start] = {id, last_key, ext};
     } else if (state == positions) {
         FileData &source = (--files.upper_bound(std::stoul(value)))->second;
         current_repeat.occurrences.push_back(source);
+        current_repeat.file_ids.insert(source.id);
     } else if (state == repeat && last_key == "text") {
         current_repeat.text = value;
     } else if (state == repeat && last_key == "length") {

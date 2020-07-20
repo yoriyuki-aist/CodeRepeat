@@ -28,25 +28,35 @@ struct RepeatDigest {
 };
 
 template<typename T>
-class SimpleMatrix {
+class SymmetricMatrix {
 private:
     std::unique_ptr<T[]> matrix;
     unsigned n{};
-public:
-    explicit SimpleMatrix(unsigned size) : n(size), matrix(new T[size * size]) {};
+    unsigned diagonal{};
 
-    [[nodiscard]] T &at(unsigned x, unsigned y) {
+    [[nodiscard]] T &_at(unsigned x, unsigned y) const {
         if (x >= n || y >= n)
             throw std::length_error(
                     std::string("Invalid index [") + std::to_string(x) + ", " + std::to_string(y) + "]");
-        return matrix[x * n + y];
+
+        if (n - x >= y) {
+            return _at(y, x);
+        }
+
+        unsigned int idx = x * n + y;
+        return idx < diagonal ? matrix[idx] : _at(y, x);
+    }
+
+public:
+    explicit SymmetricMatrix(unsigned size) : n(size), diagonal(((size * size) + 1) / 2),
+                                              matrix(new T[((size * size) + 1) / 2]) {};
+
+    [[nodiscard]] T &at(unsigned x, unsigned y) {
+        return _at(x, y);
     }
 
     [[nodiscard]] const T &at(unsigned x, unsigned y) const {
-        if (x >= n || y >= n)
-            throw std::length_error(
-                    std::string("Invalid index [") + std::to_string(x) + ", " + std::to_string(y) + "]");
-        return matrix[x * n + y];
+        return _at(x, y);
     }
 
     [[nodiscard]] unsigned size() const {
@@ -60,7 +70,7 @@ struct Statistics {
     // subtext -> number of occurrences
     std::vector<RepeatDigest> repeats;
     // [file id, file id] -> similarity
-    SimpleMatrix<unsigned long> similarity_matrix{0};
+    SymmetricMatrix<unsigned long> similarity_matrix{0};
 };
 
 enum State {
@@ -73,6 +83,7 @@ struct RepeatData {
     std::string text;
     long length{-1};
     std::vector<FileData> occurrences{};
+    std::unordered_set<unsigned> file_ids{};
 };
 
 class CloneListener : public JsonListener {

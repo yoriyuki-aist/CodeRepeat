@@ -141,6 +141,8 @@ int main(int argc, char **argv) {
 
         in.close();
     }
+
+    charmap << out.tellp() << "\t\n";   // blank file name == end
     out.close();
     charmap.close();
 
