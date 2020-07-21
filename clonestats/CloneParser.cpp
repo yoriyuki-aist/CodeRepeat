@@ -62,14 +62,6 @@ void CloneListener::endObject() {
             }
         }
 
-        // add the length of the repeat to every intersection in the matrix
-        for (const auto &repeat1 : repeats_per_file) {
-            for (const auto &repeat2 : repeats_per_file) {
-                // similarity[x, y] += (size of the repeat) * (combined number of occurrences in x and y)
-                statistics.similarity_matrix.at(repeat1.first, repeat2.first) += size * (repeat1.second + repeat2.second);
-            }
-        }
-
         statistics.repeats.push_back({current_repeat.text, count});
         current_repeat.occurrences.clear();
         current_repeat.text.clear();

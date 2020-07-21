@@ -149,7 +149,7 @@ print_similarity_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, co
     for (int i = 0; i < similarity_matrix.size(); i++) {
         for (int j = 0; j < similarity_matrix.size(); j++) {
             if (j > 0) out << ",";  // no separator for the first value of the line
-            unsigned long val = similarity_matrix.at(i, j);
+            unsigned long val = similarity_matrix.at(i, j) + similarity_matrix.at(j, i);
             if (val == 0) {
                 out << std::numeric_limits<double>::infinity();
             } else {
