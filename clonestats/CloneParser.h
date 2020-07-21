@@ -32,24 +32,17 @@ class SymmetricMatrix {
 private:
     std::unique_ptr<T[]> matrix;
     unsigned n{};
-    unsigned diagonal{};
 
     [[nodiscard]] T &_at(unsigned x, unsigned y) const {
         if (x >= n || y >= n)
             throw std::length_error(
                     std::string("Invalid index [") + std::to_string(x) + ", " + std::to_string(y) + "]");
 
-        if (n - x >= y) {
-            return _at(y, x);
-        }
-
-        unsigned int idx = x * n + y;
-        return idx < diagonal ? matrix[idx] : _at(y, x);
+        return matrix[(x * n + y)];
     }
 
 public:
-    explicit SymmetricMatrix(unsigned size) : n(size), diagonal(((size * size) + 1) / 2),
-                                              matrix(new T[((size * size) + 1) / 2]) {};
+    explicit SymmetricMatrix(unsigned size) : n(size), matrix(new T[size]) {};
 
     [[nodiscard]] T &at(unsigned x, unsigned y) {
         return _at(x, y);
