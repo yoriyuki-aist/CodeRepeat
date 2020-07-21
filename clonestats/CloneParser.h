@@ -28,7 +28,7 @@ struct RepeatDigest {
 };
 
 template<typename T>
-class SymmetricMatrix {
+class SimpleMatrix {
 private:
     std::unique_ptr<T[]> matrix;
     unsigned n{};
@@ -42,7 +42,7 @@ private:
     }
 
 public:
-    explicit SymmetricMatrix(unsigned size) : n(size), matrix(new T[size * size]) {};
+    explicit SimpleMatrix(unsigned size) : n(size), matrix(new T[size * size]) {};
 
     [[nodiscard]] T &at(unsigned x, unsigned y) {
         return _at(x, y);
@@ -63,7 +63,7 @@ struct Statistics {
     // subtext -> number of occurrences
     std::vector<RepeatDigest> repeats;
     // [file id, file id] -> similarity
-    SymmetricMatrix<unsigned long> similarity_matrix{0};
+    SimpleMatrix<unsigned long> similarity_matrix{0};
 };
 
 enum State {

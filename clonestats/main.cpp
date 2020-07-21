@@ -16,7 +16,7 @@ void print_occurrence_counts(const std::unordered_map<std::string, std::map<unsi
 void
 print_idioms(std::vector<RepeatDigest> repeats, int min_occ, std::ostream &out);
 
-void print_similarity_matrix(const SymmetricMatrix<unsigned long> &similarity_matrix, const std::map<unsigned long, FileData> &files,
+void print_similarity_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, const std::map<unsigned long, FileData> &files,
                              std::ostream &out);
 
 void print_results(const std::map<unsigned long, FileData> &files, const Statistics &stats,
@@ -125,7 +125,7 @@ void parse_json(std::map<unsigned long, FileData> &extensions,
 }
 
 void
-print_similarity_matrix(const SymmetricMatrix<unsigned long> &similarity_matrix, const std::map<unsigned long, FileData> &files,
+print_similarity_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, const std::map<unsigned long, FileData> &files,
                         std::ostream &out) {
     
     const auto &concat_end = files.crbegin();  // special last pair

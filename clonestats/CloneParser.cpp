@@ -30,7 +30,7 @@ void CloneListener::startObject() {
 void CloneListener::endObject() {
     if (state == file_starts) {
         state = root;
-        statistics.similarity_matrix = SymmetricMatrix<unsigned long>(files.size());
+        statistics.similarity_matrix = SimpleMatrix<unsigned long>(files.size());
     } else if (state == repeat) {
         state = repeats;
         unsigned long size = current_repeat.text.size();
