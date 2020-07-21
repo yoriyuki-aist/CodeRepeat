@@ -42,7 +42,7 @@ private:
     }
 
 public:
-    explicit SymmetricMatrix(unsigned size) : n(size), matrix(new T[size]) {};
+    explicit SymmetricMatrix(unsigned size) : n(size), matrix(new T[size * size]) {};
 
     [[nodiscard]] T &at(unsigned x, unsigned y) {
         return _at(x, y);
