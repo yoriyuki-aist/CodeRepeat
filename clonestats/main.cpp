@@ -151,7 +151,7 @@ print_similarity_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, co
             if (j > 0) out << ",";  // no separator for the first value of the line
             unsigned long val = similarity_matrix.at(i, j) + similarity_matrix.at(j, i);
             if (val == 0) {
-                out << std::numeric_limits<double>::infinity();
+                out << 1e50;
             } else {
                 out << log((double) (file_lengths[i] + file_lengths[j])) - log((double) val);
             }
