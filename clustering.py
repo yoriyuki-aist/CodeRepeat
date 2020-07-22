@@ -31,7 +31,10 @@ if __name__ == "__main__":
         files = f.readline().split()
         matrix = np.array([[float(num) for num in line.split(',')] for line in f])
 
-    model = AgglomerativeClustering(distance_threshold=0, n_clusters=None).fit(matrix)
+    with open('connectivity.csv', 'r') as f:
+        connectivity = np.array([[int(num) for num in line.split(',')] for line in f])
+
+    model = AgglomerativeClustering(distance_threshold=0, n_clusters=None, connectivity=connectivity).fit(matrix)
     plt.title('Hierarchical Clustering Dendrogram')
     # plot the top three levels of the dendrogram
     plot_dendrogram(model, truncate_mode='level', p=3)

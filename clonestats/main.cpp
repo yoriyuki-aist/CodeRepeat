@@ -1,7 +1,7 @@
 #include <iostream>
 #include <algorithm>
 #include <json/JsonStreamingParser.h>
-#include <tgmath.h>
+#include <ctgmath>
 #include "CloneParser.h"
 #include "../util/ArgParser.h"
 #include "../util/stringescape.h"
@@ -16,11 +16,11 @@ void print_occurrence_counts(const std::unordered_map<std::string, std::map<unsi
 void
 print_idioms(std::vector<RepeatDigest> repeats, int min_occ, std::ostream &out);
 
-void print_similarity_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, const std::map<unsigned long, FileData> &files,
-                             std::ostream &out);
+void print_distance_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, const std::map<unsigned long, FileData> &files,
+                           const std::optional<std::string> &connectivity, std::ostream &out);
 
 void print_results(const std::map<unsigned long, FileData> &files, const Statistics &stats,
-                   const std::optional<std::string> &idiom_occ, bool compute_distances, std::ostream &out);
+                   const std::optional<std::string> &idiom_occ, bool compute_distances, const std::optional<std::string> &connectivity, std::ostream &out);
 
 namespace fs = std::filesystem;
 
@@ -34,6 +34,7 @@ int main(int argc, char **argv) {
 
     std::string json_file = argv[1];
     std::optional<std::string> out_file = args.getCmdArg("-o");
+    std::optional<std::string> connectivity = args.getCmdArg("--connectivity");
     std::map<unsigned long, FileData> files;
     Statistics stats;
     std::ifstream json_in(json_file);
@@ -57,21 +58,22 @@ int main(int argc, char **argv) {
             exit(1);
         }
 
-        print_results(files, stats, idiom_occ, compute_distance, out);
+        print_results(files, stats, idiom_occ, compute_distance, connectivity, out);
     } else {
-        print_results(files, stats, idiom_occ, compute_distance, std::cout);
+        print_results(files, stats, idiom_occ, compute_distance, connectivity, std::cout);
     }
 
     return 0;
 }
 
 void print_results(const std::map<unsigned long, FileData> &files, const Statistics &stats,
-                   const std::optional<std::string> &idiom_occ, bool compute_distances, std::ostream &out) {
+                   const std::optional<std::string> &idiom_occ, bool compute_distances,
+                   const std::optional<std::string> &connectivity, std::ostream &out) {
     if (idiom_occ) {
         // Print list of repeated sequences with their frequency
         print_idioms(stats.repeats, std::stoi(*idiom_occ), out);
     } else if (compute_distances) {
-        print_similarity_matrix(stats.similarity_matrix, files, out);
+        print_distance_matrix(stats.similarity_matrix, files, connectivity, out);
     } else {
         // Print number of occurrences of repeated subsequences by file extension
         print_occurrence_counts(stats.occurrences, out);
@@ -125,9 +127,20 @@ void parse_json(std::map<unsigned long, FileData> &extensions,
 }
 
 void
-print_similarity_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, const std::map<unsigned long, FileData> &files,
-                        std::ostream &out) {
-    
+print_distance_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, const std::map<unsigned long, FileData> &files,
+                      const std::optional<std::string> &connectivity, std::ostream &out) {
+
+    std::optional<std::ofstream> connect;
+
+    if (connectivity) {
+        connect = std::ofstream(*connectivity);
+
+        if (!*connect) {
+            std::cerr << "output file open fails. exit.\n";
+            exit(1);
+        }
+    }
+
     const auto &concat_end = files.crbegin();  // special last pair
     if (!concat_end->second.name.empty()) throw std::runtime_error("Last file mapping should use the empty string as name");
 
@@ -148,15 +161,21 @@ print_similarity_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, co
 
     for (int i = 0; i < similarity_matrix.size(); i++) {
         for (int j = 0; j < similarity_matrix.size(); j++) {
-            if (j > 0) out << ",";  // no separator for the first value of the line
+            if (j > 0) {   // no separator for the first value of the line
+                out << ",";
+                if (connect) *connect << ",";
+            }
             unsigned long val = similarity_matrix.at(i, j) + similarity_matrix.at(j, i);
             if (val == 0) {
                 out << 1e50;
+                if (connect) *connect << 0;
             } else {
                 out << log((double) (file_lengths[i] + file_lengths[j])) - log((double) val);
+                if (connect) *connect << 1;
             }
         }
         out << "\n";
+        if (connect) *connect << "\n";
     }
 }
 
