@@ -133,8 +133,6 @@ int main(int argc, char **argv) {
             outbuf->sputc (c);
         }
 
-        std::cout << in.fail() << in.eof() << "\n";
-
         if (eof) {
             outbuf->sputc(EOF_CHAR);
         }
