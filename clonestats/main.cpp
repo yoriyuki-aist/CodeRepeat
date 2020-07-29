@@ -159,8 +159,8 @@ print_distance_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, cons
 
     out << "\n";
 
-    for (int i = 0; i < similarity_matrix.size(); i++) {
-        for (int j = 0; j < similarity_matrix.size(); j++) {
+    for (int i = 0; i < similarity_matrix.size() - 1; i++) {    // discard the dummy
+        for (int j = 0; j < similarity_matrix.size() - 1; j++) {
             if (j > 0) {   // no separator for the first value of the line
                 out << ",";
                 if (connect) *connect << ",";
@@ -178,4 +178,3 @@ print_distance_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, cons
         if (connect) *connect << "\n";
     }
 }
-

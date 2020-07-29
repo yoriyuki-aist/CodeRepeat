@@ -15,6 +15,7 @@ def unsigned_int(x):
 
 def run(cmd: List[str]):
     print("Running '" + " ".join(cmd) + "'...")
+    cmd.insert(0, '/usr/bin/time')
     subprocess.check_call(cmd)
 
 
