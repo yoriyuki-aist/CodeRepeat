@@ -79,7 +79,7 @@ def run_postprocessor(args, intermediary, output):
     if args.skip_blank:
         post_args.append('--skip-blank')
     if args.skip_null:
-        post_args.append('--skip-null')    
+        post_args.append('--skip-null')
     run(post_args)
 
 
@@ -121,7 +121,13 @@ def run_stats(args):
         stats_args.extend(['-o', args.output.name])
 
     if args.count:
-        stats_args.extend(['--count'])
+        stats_args.append('--count')
+
+    if args.distance:
+        stats_args.append('--distance')
+
+    if args.connectivity:
+        stats_args.extend(['--connectivity', args.connectivity.name])
 
     run(stats_args)
 
@@ -157,7 +163,7 @@ def parse_args():
                            help='Truncate sequences of whitespace preceding a line feed (default: false)')
     find_group = scan_parser.add_argument_group('Repeat Finding', 'Options for the "findmaxrep" step.')
     find_group.add_argument('--alt-finder', dest='alt_finder', action='store_true',
-                           help='Use the alternative (slower) repeat finder (default: false)')
+                            help='Use the alternative (slower) repeat finder (default: false)')
     post_group = scan_parser.add_argument_group('Post-processing', 'Options for the "post" step')
     post_group.add_argument('--skip-blank', dest='skip_blank', action='store_true',
                             help='Skip repeated sequences that only contain whitespace and control code (default: false)')
@@ -168,6 +174,9 @@ def parse_args():
     stat_parser.add_argument('input', type=argparse.FileType('r'), help='JSON file emitted by the scan process')
     stat_parser.add_argument('-o', '--output', type=argparse.FileType('w'), help='Output CSV file (default: stdout)')
     stat_parser.add_argument('--count', dest='count', action='store_true', help='Create a count matrix')
+    stat_parser.add_argument('--distance', action='store_true', help='Create a distance matrix')
+    stat_parser.add_argument('--connectivity', type=argparse.FileType('w'), help='Saves a connectivity matrix to '
+                                                                                 'the given file')
     stat_parser.set_defaults(launch=run_stats)
 
     return parser.parse_args()
