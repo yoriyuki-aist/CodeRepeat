@@ -31,6 +31,7 @@ void CloneListener::endObject() {
     if (state == file_starts) {
         state = root;
         statistics.similarity_matrix = SimpleMatrix<unsigned long>(files.size());
+        statistics.count_matrix = SimpleMatrix<unsigned long>(files.size());
     } else if (state == repeat) {
         state = repeats;
         unsigned long size = current_repeat.text.size();
@@ -59,6 +60,9 @@ void CloneListener::endObject() {
             // similarity[x, y] += (size of the repeat) * (combined number of occurrences in x and y)
             for (unsigned file_id : current_repeat.file_ids) {
                 statistics.similarity_matrix.at(source_file.id, file_id) += size;
+            }
+            for (unsigned file_id : current_repeat.file_ids) {
+                statistics.count_matrix.at(source_file.id, file_id) += 1;
             }
         }
 

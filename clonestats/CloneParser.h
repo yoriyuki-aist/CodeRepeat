@@ -64,6 +64,8 @@ struct Statistics {
     std::vector<RepeatDigest> repeats;
     // [file id, file id] -> similarity
     SimpleMatrix<unsigned long> similarity_matrix{0};
+    // [file id, file id] -> number of clones
+    SimpleMatrix<unsigned long> count_matrix{0};
 };
 
 enum State {

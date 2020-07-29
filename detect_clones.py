@@ -123,6 +123,9 @@ def run_stats(args):
     if args.idioms:
         stats_args.extend(['--idioms', str(args.idioms)])
 
+    if args.count:
+        stats_args.extend(['--count'])
+
     run(stats_args)
 
 
@@ -169,6 +172,7 @@ def parse_args():
     stat_parser.add_argument('-o', '--output', type=argparse.FileType('w'), help='Output CSV file (default: stdout)')
     stat_parser.add_argument('--idioms', type=int, metavar='IDIOM_OCC',
                              help='Find the repeated sequences appearing more than IDIOM_OCC (default: no idiom search)')
+    stat_parser.add_argument('--count', dest='count', action='store_true', help='Create a count matrix')
     stat_parser.set_defaults(launch=run_stats)
 
     return parser.parse_args()
