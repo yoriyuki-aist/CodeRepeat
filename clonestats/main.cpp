@@ -19,8 +19,12 @@ print_idioms(std::vector<RepeatDigest> repeats, int min_occ, std::ostream &out);
 void print_distance_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, const std::map<unsigned long, FileData> &files,
                            const std::optional<std::string> &connectivity, std::ostream &out);
 
+void print_count_matrix(const SimpleMatrix<unsigned long> &count_matrix, const std::map<unsigned long, FileData> &files,
+                        std::ostream &out);
+
 void print_results(const std::map<unsigned long, FileData> &files, const Statistics &stats,
-                   const std::optional<std::string> &idiom_occ, bool compute_distances, const std::optional<std::string> &connectivity, std::ostream &out);
+                   const std::optional<std::string> &idiom_occ, bool compute_distances, bool compute_count,
+                   const std::optional<std::string> &connectivity, std::ostream &out);
 
 namespace fs = std::filesystem;
 
@@ -49,6 +53,7 @@ int main(int argc, char **argv) {
 
     std::optional<std::string> idiom_occ = args.getCmdArg("--idioms");
     bool compute_distance = args.cmdOptionExists("--distance");
+    bool compute_count = args.cmdOptionExists("--count");
 
     if (out_file) {
         std::ofstream out(*out_file);
@@ -58,9 +63,9 @@ int main(int argc, char **argv) {
             exit(1);
         }
 
-        print_results(files, stats, idiom_occ, compute_distance, connectivity, out);
+        print_results(files, stats, idiom_occ, compute_distance, compute_count, connectivity, out);
     } else {
-        print_results(files, stats, idiom_occ, compute_distance, connectivity, std::cout);
+        print_results(files, stats, idiom_occ, compute_distance, compute_count, connectivity, std::cout);
     }
 
     return 0;
@@ -68,12 +73,15 @@ int main(int argc, char **argv) {
 
 void print_results(const std::map<unsigned long, FileData> &files, const Statistics &stats,
                    const std::optional<std::string> &idiom_occ, bool compute_distances,
+                   bool compute_count,
                    const std::optional<std::string> &connectivity, std::ostream &out) {
     if (idiom_occ) {
         // Print list of repeated sequences with their frequency
         print_idioms(stats.repeats, std::stoi(*idiom_occ), out);
     } else if (compute_distances) {
         print_distance_matrix(stats.similarity_matrix, files, connectivity, out);
+    } else if (compute_count) {
+        print_count_matrix(stats.count_matrix, files, out);
     } else {
         // Print number of occurrences of repeated subsequences by file extension
         print_occurrence_counts(stats.occurrences, out);
@@ -176,5 +184,38 @@ print_distance_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, cons
         }
         out << "\n";
         if (connect) *connect << "\n";
+    }
+}
+
+void
+print_count_matrix(const SimpleMatrix<unsigned long> &count_matrix, const std::map<unsigned long, FileData> &files,
+                      std::ostream &out) {
+
+    const auto &concat_end = files.crbegin();  // special last pair
+    if (!concat_end->second.name.empty()) throw std::runtime_error("Last file mapping should use the empty string as name");
+
+    unsigned long file_lengths[files.size()];
+    unsigned long last_file_start{};
+
+    for (const auto &f : files) {
+        unsigned int file_id = f.second.id;
+        if (file_id > 0) {
+            out << ",";
+            file_lengths[file_id - 1] = f.first - last_file_start;
+        }
+        out << f.second.name;
+        last_file_start = f.first;
+    }
+
+    out << "\n";
+
+    for (int i = 0; i < count_matrix.size() - 1; i++) {    // discard the dummy
+        for (int j = 0; j < count_matrix.size() - 1; j++) {
+            if (j > 0) {   // no separator for the first value of the line
+                out << ",";
+            }
+            out << count_matrix.at(i, j) + count_matrix.at(j, i);
+        }
+        out << "\n";
     }
 }
