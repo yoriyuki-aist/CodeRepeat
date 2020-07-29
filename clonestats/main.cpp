@@ -208,12 +208,13 @@ print_count_matrix(const SimpleMatrix<unsigned long> &count_matrix, const std::m
     }
 
     out << "\n";
+    auto it = files.begin();
 
     for (int i = 0; i < count_matrix.size() - 1; i++) {    // discard the dummy
+        out << it->second.name;
+        ++it;
         for (int j = 0; j < count_matrix.size() - 1; j++) {
-            if (j > 0) {   // no separator for the first value of the line
-                out << ",";
-            }
+            out << ",";
             out << count_matrix.at(i, j) + count_matrix.at(j, i);
         }
         out << "\n";
