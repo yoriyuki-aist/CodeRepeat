@@ -164,13 +164,16 @@ print_count_matrix(const SimpleMatrix<unsigned long> &count_matrix, const std::m
     const auto &concat_end = files.crbegin();  // special last pair
     if (!concat_end->second.name.empty()) throw std::runtime_error("Last file mapping should use the empty string as name");
 
-    unsigned long file_lengths[files.size()];
+    unsigned long file_count = files.size();
+    unsigned long file_lengths[file_count];
     unsigned long last_file_start{};
 
     for (const auto &f : files) {
         unsigned int file_id = f.second.id;
-        if (file_id > 0) {
+        if (file_id < file_count - 1) {
             out << ",";
+        }
+        if (file_id > 0) {
             file_lengths[file_id - 1] = f.first - last_file_start;
         }
         out << f.second.name;
