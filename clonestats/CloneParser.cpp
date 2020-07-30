@@ -67,6 +67,7 @@ void CloneListener::endObject() {
         }
 
         statistics.repeats.push_back({current_repeat.text, count});
+        current_repeat.file_ids.clear();
         current_repeat.occurrences.clear();
         current_repeat.text.clear();
     } else if (state == root) {
