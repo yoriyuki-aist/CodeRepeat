@@ -144,7 +144,10 @@ print_distance_matrix(const SimpleMatrix<unsigned long> &similarity_matrix, cons
                 if (connect) *connect << ",";
             }
             unsigned long val = similarity_matrix.at(i, j) + similarity_matrix.at(j, i);
-            if (val == 0) {
+            if (i == j) {
+                out << 0;
+                if (connect) *connect << 1;
+            } else if (val == 0) {
                 out << 1e2;
                 if (connect) *connect << 0;
             } else {
