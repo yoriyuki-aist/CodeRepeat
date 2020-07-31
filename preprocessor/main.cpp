@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
     std::optional<std::ofstream> linemap;
 
     if (linemap_file) {
-        linemap = std::ofstream(*linemap_file);
+        linemap.emplace(*linemap_file);
 
         if (!*linemap) {
             std::cerr << "linemap output file open fails. exit.\n";

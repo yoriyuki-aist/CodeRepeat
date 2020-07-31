@@ -69,10 +69,10 @@ struct Statistics {
 };
 
 enum State {
-    start, root, file_starts, repeats, repeat, positions, done
+    start, root, file_starts, line_starts, repeats, repeat, positions, done
 };
 
-static const char *states[] = {"start", "root", "file starts", "repeats", "repeat", "positions", "done"};
+static const char *states[] = {"start", "root", "file starts", "line starts", "repeats", "repeat", "positions", "done"};
 
 struct RepeatData {
     std::string text;
@@ -89,11 +89,15 @@ private:
     // position in the concatenated file -> extension+id of the source file
     // will be empty if the "file_starts" object is not parsed before the "repeats"!
     std::map<unsigned long, FileData> &files;
+    // position in the concatenated file -> line number in the source file
+    // may be empty if the "line_starts" object does not exist
+    std::optional<std::map<unsigned long, unsigned long>> &lines;
     Statistics &statistics;
 
 public:
-    CloneListener(std::map<unsigned long, FileData> &files, Statistics &statistics) :
-            files(files), statistics(statistics) {};
+    CloneListener(std::map<unsigned long, FileData> &files, Statistics &statistics,
+                  std::optional<std::map<unsigned long, unsigned long>> &lines) :
+            files(files), statistics(statistics), lines(lines) {};
 
     void whitespace(char c) override;
 

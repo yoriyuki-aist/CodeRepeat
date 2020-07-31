@@ -18,6 +18,9 @@ void CloneListener::key(std::string key) {
 void CloneListener::startObject() {
     if (state == root && last_key == "file_starts") {
         state = file_starts;
+    } else if (state == root && last_key == "line_starts") {
+        lines.emplace();
+        state = line_starts;
     } else if (state == repeats) {
         state = repeat;
     } else if (state == start) {
@@ -32,6 +35,8 @@ void CloneListener::endObject() {
         state = root;
         statistics.similarity_matrix = SimpleMatrix<unsigned long>(files.size());
         statistics.count_matrix = SimpleMatrix<unsigned long>(files.size());
+    } else if (state == line_starts) {
+        state = root;
     } else if (state == repeat) {
         state = repeats;
         unsigned long size = current_repeat.text.size();
@@ -83,6 +88,8 @@ void CloneListener::value(std::string value) {
         std::string ext = std::filesystem::path(last_key).extension();
         unsigned long file_start = std::stoul(value);
         files[file_start] = {id, last_key, ext};
+    } else if (state == line_starts) {
+        (*lines)[std::stoul(value)] = std::stoul(last_key);
     } else if (state == positions) {
         FileData &source = (--files.upper_bound(std::stoul(value)))->second;
         current_repeat.occurrences.push_back(source);

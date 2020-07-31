@@ -7,6 +7,7 @@
 #include "../util/stringescape.h"
 
 void parse_json(std::map<unsigned long, FileData> &extensions,
+                std::optional<std::map<unsigned long, unsigned long>> &lines,
                 Statistics &stats,
                 std::ifstream &json_in);
 
@@ -37,6 +38,7 @@ int main(int argc, char **argv) {
     std::optional<std::string> connectivity = args.getCmdArg("--connectivity");
     std::map<unsigned long, FileData> files;
     Statistics stats;
+    std::optional<std::map<unsigned long, unsigned long>> lines;
     std::ifstream json_in(json_file);
 
     if (!json_in) {
@@ -44,7 +46,7 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    parse_json(files, stats, json_in);
+    parse_json(files, lines, stats, json_in);
     json_in.close();
 
     bool compute_distance = args.cmdOptionExists("--distance");
@@ -93,9 +95,10 @@ void print_occurrence_counts(const std::unordered_map<std::string, std::map<unsi
 
 void parse_json(std::map<unsigned long, FileData> &extensions,
                 Statistics &stats,
+                std::optional<std::map<unsigned long, unsigned long>> &lines,
                 std::ifstream &json_in) {
     JsonStreamingParser parser;
-    CloneListener listener = CloneListener(extensions, stats);
+    CloneListener listener = CloneListener(extensions, stats, lines);
     parser.setListener(&listener);
 
     char c;
