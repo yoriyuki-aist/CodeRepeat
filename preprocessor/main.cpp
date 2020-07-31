@@ -165,6 +165,7 @@ int main(int argc, char **argv) {
     charmap << out.tellp() << "\t\n";   // blank file name == end
     out.close();
     charmap.close();
+    if (linemap) linemap->close();
 
     std::cout << "\nDone!\n";
 }
