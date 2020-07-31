@@ -21,7 +21,7 @@ struct ProcessingOptions {
 };
 
 void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_set<std::string> &splits,
-            const ProcessingOptions &opts);
+            const ProcessingOptions &opts, const std::optional<std::map<unsigned long, unsigned long>> &linemap);
 
 void emit_repeat(std::ostream &json_out, const std::string &subtext, const std::vector<unsigned long> &positions);
 
@@ -143,6 +143,8 @@ int main(int argc, char **argv) {
     std::string bwt_file = argv[1];
     std::string charmap_file = argv[2];
     std::string json_file = argv[3];
+    std::optional<std::string> linemap_file = args.getCmdArg("--linemap");
+
     std::ifstream charmap_in(charmap_file);
 
     if (!charmap_in) {
@@ -165,6 +167,26 @@ int main(int argc, char **argv) {
 
     charmap_in.close();
 
+    std::optional<std::map<unsigned long, unsigned long>> linemap;
+
+    if (linemap_file) {
+        std::ifstream linemap_in(*linemap_file);
+
+        if (!linemap_in) {
+            std::cerr << "linemap output file open fails. exit.\n";
+            exit(1);
+        }
+
+        while (linemap_in >> char_idx) {
+            if (linemap_in.rdbuf()->sbumpc() != '\t') {
+                std::cerr << "Unexpected character at position " << linemap_in.tellg() << " in " << *linemap_file;
+                break;
+            }
+            std::getline(linemap_in, line);
+            charmap[char_idx] = line;
+        }
+    }
+
     std::unordered_set<std::string> splits;
     ProcessingOptions opts{
             std::stoi(args.getCmdArg("-m").value_or("0")),
@@ -176,18 +198,18 @@ int main(int argc, char **argv) {
 
     // first pass: collect repeated subtexts that get split between files
     // if there is no such repeated subtext, this is the only pass
-    filter(charmap, splits, opts);
+    filter(charmap, splits, opts, linemap);
 
     // second pass: we know which subtexts come from splits, we can guarantee they all get merged
     if (!splits.empty()) {
-        filter(charmap, splits, opts);
+        filter(charmap, splits, opts, linemap);
     }
 
     return 0;
 }
 
 void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_set<std::string> &splits,
-            const ProcessingOptions &opts) {
+            const ProcessingOptions &opts, const std::optional<std::map<unsigned long, unsigned long>> &linemap) {
     std::ifstream bwt(opts.bwt_file);
 
     if (!bwt) {
@@ -216,7 +238,23 @@ void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_
         json_out << ": " << charentry.first;
     }
 
-    json_out << "\n\t},\n\t\"repeats\": [\n";
+    json_out << "\n\t},\n";
+
+    if (linemap) {
+        json_out << "\t\"line_starts\": {\n";
+        sep = false;
+
+        for (const auto &lineentry : *linemap) {
+            if (sep) json_out << ",\n";
+            else sep = true;
+
+            json_out << "\t\t" << lineentry.second << ": " << lineentry.first;
+        }
+
+        json_out << "\n\t},\n";
+    }
+
+    json_out << "\t\"repeats\": [\n";
 
     bool print_obj_separator = false;
 
