@@ -78,6 +78,8 @@ def run_postprocessor(args, intermediary, output):
         output.name,
         "-m", str(args.minrepeat)
     ]
+    if args.linemap:
+        post_args.extend(['--linemap', args.linemap])
     if args.skip_blank:
         post_args.append('--skip-blank')
     if args.skip_null:
@@ -173,6 +175,8 @@ def parse_args():
                             help='Skip repeated sequences that only contain whitespace and control code (default: false)')
     post_group.add_argument('--skip-null', dest='skip_null', action='store_true',
                             help='Skip repeated sequences that only contain null (default: false)')
+    post_group.add_argument('--linemap', type=argparse.FileType('r'),
+                           help='Import and convert mappings from character position to line number')
     scan_parser.set_defaults(launch=run_scan)
     stat_parser = subparsers.add_parser('stats')
     stat_parser.add_argument('input', type=argparse.FileType('r'), help='JSON file emitted by the scan process')
