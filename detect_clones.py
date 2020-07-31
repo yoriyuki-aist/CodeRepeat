@@ -28,6 +28,8 @@ def run_preprocessor(args, intermediary):
     ]
     if args.extensions:
         pre_args.extend(['--extensions', *args.extensions])
+    if args.linemap:
+        pre_args.extend(['--linemap', args.linemap])
     if args.nl:
         pre_args.append('-nl')
     if args.nl2s:
@@ -161,6 +163,8 @@ def parse_args():
                            help='Replace sequences of whitespace with a single common space (default: false)')
     pre_group.add_argument('--normalize-trailing', dest='ntr', action='store_true',
                            help='Truncate sequences of whitespace preceding a line feed (default: false)')
+    pre_group.add_argument('--linemap', type=argparse.FileType('w'),
+                           help='Export mappings from character position to line number')
     find_group = scan_parser.add_argument_group('Repeat Finding', 'Options for the "findmaxrep" step.')
     find_group.add_argument('--alt-finder', dest='alt_finder', action='store_true',
                             help='Use the alternative (slower) repeat finder (default: false)')

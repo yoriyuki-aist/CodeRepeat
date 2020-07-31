@@ -37,12 +37,23 @@ int main(int argc, char **argv) {
     bool debug = args.cmdOptionExists("--debug");
     bool verbose = args.cmdOptionExists("-v");
     std::optional<std::vector<std::string>> file_extensions = args.getCmdArgs("--extensions");
+    std::optional<std::string> linemap_file = args.getCmdArg("--linemap");
 
     std::string out_file = argv[2];
     std::string charmap_file = argv[3];
 
     std::ofstream out(out_file);
     std::ofstream charmap(charmap_file);
+    std::optional<std::ofstream> linemap;
+
+    if (linemap_file) {
+        linemap = std::ofstream(*linemap_file);
+
+        if (!*linemap) {
+            std::cerr << "linemap output file open fails. exit.\n";
+            exit(1);
+        }
+    }
 
     if (!out) {
         std::cout << "output file open fails. exit.\n";
@@ -82,6 +93,9 @@ int main(int argc, char **argv) {
         }
 
         charmap << out.tellp() << "\t" << file.path().string() << "\n";
+        if (linemap) {
+            *linemap << out.tellp() << "\t" << 1 << "\n";
+        }
 
         if (debug) {
             out << "==================" << file << "==================\n";
@@ -91,12 +105,20 @@ int main(int argc, char **argv) {
         std::filebuf *outbuf = out.rdbuf();
         bool skip_next_space = false;
         unsigned long space_count = 0;
+        unsigned long line_nb = 2;
 
         for (int c = inbuf->sbumpc(); c != EOF; c = inbuf->sbumpc()) {
             // process data in buffer
             if (normalize_newlines) {
                 if (c == '\r') {
                     continue;
+                }
+            }
+
+            if (linemap) {
+                if (c == '\n') {
+                    *linemap << out.tellp() << "\t" << line_nb << "\n";
+                    ++line_nb;
                 }
             }
 
