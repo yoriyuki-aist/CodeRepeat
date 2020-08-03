@@ -94,8 +94,8 @@ void print_occurrence_counts(const std::unordered_map<std::string, std::map<unsi
 }
 
 void parse_json(std::map<unsigned long, FileData> &extensions,
-                Statistics &stats,
                 std::optional<std::map<unsigned long, unsigned long>> &lines,
+                Statistics &stats,
                 std::ifstream &json_in) {
     JsonStreamingParser parser;
     CloneListener listener = CloneListener(extensions, stats, lines);
