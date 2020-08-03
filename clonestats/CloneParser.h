@@ -86,13 +86,18 @@ private:
     State state{start};
     RepeatData current_repeat{};
     std::string last_key{};
+
+protected:
+    Statistics &statistics;
     // position in the concatenated file -> extension+id of the source file
     // will be empty if the "file_starts" object is not parsed before the "repeats"!
     std::map<unsigned long, FileData> &files;
     // position in the concatenated file -> line number in the source file
     // may be empty if the "line_starts" object does not exist
     std::optional<std::map<unsigned long, unsigned long>> &lines;
-    Statistics &statistics;
+
+    virtual void postFileStarts() {};
+    virtual void onRepeat(const RepeatData &repeat) {};
 
 public:
     CloneListener(std::map<unsigned long, FileData> &files, Statistics &statistics,
@@ -116,4 +121,36 @@ public:
     void startArray() override;
 
     void startObject() override;
+
+    virtual void printResults(std::ostream &out) = 0;
+};
+
+class DistanceMatrixGenerator : public CloneListener {
+private:
+    std::optional<std::string> connectivity;
+public:
+    DistanceMatrixGenerator(std::map<unsigned long, FileData> &files, Statistics &statistics,
+                            std::optional<std::map<unsigned long, unsigned long>> &lines,
+                            std::optional<std::string> &connectivity): CloneListener(files, statistics, lines),
+                            connectivity(connectivity) {}
+    void printResults(std::ostream &out) override;
+};
+
+class CountMatrixGenerator : public CloneListener {
+private:
+    std::optional<std::string> connectivity;
+public:
+    CountMatrixGenerator(std::map<unsigned long, FileData> &files, Statistics &statistics,
+                         std::optional<std::map<unsigned long, unsigned long>> &lines,
+                         std::optional<std::string> &connectivity): CloneListener(files, statistics, lines),
+                                                                    connectivity(connectivity) {}
+    void printResults(std::ostream &out) override;
+};
+
+class OccurrenceCsvGenerator : public CloneListener {
+public:
+    OccurrenceCsvGenerator(std::map<unsigned long, FileData> &files, Statistics &statistics,
+                            std::optional<std::map<unsigned long, unsigned long>> &lines): CloneListener(files, statistics, lines) {}
+
+    void printResults(std::ostream &out) override;
 };

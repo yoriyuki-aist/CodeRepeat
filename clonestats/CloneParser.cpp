@@ -1,4 +1,7 @@
 #include <filesystem>
+#include <iostream>
+#include <fstream>
+#include <ctgmath>
 
 #include "CloneParser.h"
 
@@ -127,3 +130,101 @@ void CloneListener::endDocument() {
     // NO-OP
 }
 
+void DistanceMatrixGenerator::printResults(std::ostream &out) {
+    std::optional<std::ofstream> connect;
+
+    if (connectivity) {
+        connect = std::ofstream(*connectivity);
+
+        if (!*connect) {
+            std::cerr << "output file open fails. exit.\n";
+            exit(1);
+        }
+    }
+
+    const auto &concat_end = files.crbegin();  // special last pair
+    if (!concat_end->second.name.empty()) throw std::runtime_error("Last file mapping should use the empty string as name");
+
+    unsigned long file_lengths[files.size()];
+    unsigned long last_file_start{};
+
+    for (const auto &f : files) {
+        unsigned int file_id = f.second.id;
+        if (file_id > 0) {
+            out << ",";
+            file_lengths[file_id - 1] = f.first - last_file_start;
+        }
+        out << f.second.name;
+        last_file_start = f.first;
+    }
+
+    out << "\n";
+
+    for (int i = 0; i < statistics.similarity_matrix.size() - 1; i++) {    // discard the dummy
+        for (int j = 0; j < statistics.similarity_matrix.size() - 1; j++) {
+            if (j > 0) {   // no separator for the first value of the line
+                out << ",";
+                if (connect) *connect << ",";
+            }
+            unsigned long val = statistics.similarity_matrix.at(i, j) + statistics.similarity_matrix.at(j, i);
+            if (i == j) {
+                out << 0;
+                if (connect) *connect << 1;
+            } else if (val == 0) {
+                out << 1e2;
+                if (connect) *connect << 0;
+            } else {
+                out << log((double) (file_lengths[i] + file_lengths[j])) - log((double) val);
+                if (connect) *connect << 1;
+            }
+        }
+        out << "\n";
+        if (connect) *connect << "\n";
+    }
+}
+
+void CountMatrixGenerator::printResults(std::ostream &out) {
+    const auto &concat_end = files.crbegin();  // special last pair
+    if (!concat_end->second.name.empty()) throw std::runtime_error("Last file mapping should use the empty string as name");
+
+    unsigned long file_count = files.size();
+    unsigned long file_lengths[file_count];
+    unsigned long last_file_start{};
+
+    for (const auto &f : files) {
+        unsigned int file_id = f.second.id;
+        if (file_id < file_count - 1) {
+            out << ",";
+        }
+        if (file_id > 0) {
+            file_lengths[file_id - 1] = f.first - last_file_start;
+        }
+        out << f.second.name;
+        last_file_start = f.first;
+    }
+
+    out << "\n";
+    auto it = files.begin();
+
+    for (int i = 0; i < statistics.count_matrix.size() - 1; i++) {    // discard the dummy
+        out << it->second.name;
+        ++it;
+        for (int j = 0; j < statistics.count_matrix.size() - 1; j++) {
+            out << ",";
+            out << statistics.count_matrix.at(i, j) + statistics.count_matrix.at(j, i);
+        }
+        out << "\n";
+    }
+}
+
+void OccurrenceCsvGenerator::printResults(std::ostream &out) {
+    out << "File extension,Size,Occurrence(s),unique sequence(s)\n";
+    for (const auto &ext_entry : statistics.occurrences) {
+        for (const auto &size_entry : ext_entry.second) {
+            out << (ext_entry.first.empty() ? "(none)" : ext_entry.first) << ',';
+            out << size_entry.first << "," << size_entry.second.total << ",";
+            out << size_entry.second.unique;
+            out << "\n";
+        }
+    }
+}
