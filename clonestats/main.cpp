@@ -41,10 +41,6 @@ int main(int argc, char **argv) {
     std::string json_file = argv[1];
     std::optional<std::string> out_file = args.getCmdArg("-o");
     std::optional<std::string> connectivity = args.getCmdArg("--connectivity");
-    std::map<unsigned long, FileData> files;
-    Statistics stats;
-    std::optional<std::map<unsigned long, unsigned long>> lines;
-
     bool compute_distance = args.cmdOptionExists("--distance");
     bool compute_count = args.cmdOptionExists("--count");
 
@@ -56,14 +52,14 @@ int main(int argc, char **argv) {
     }
 
     if (compute_distance) {
-        DistanceMatrixGenerator listener(files, stats, lines, connectivity);
+        DistanceMatrixGenerator listener(connectivity);
         parse_json(listener, json_in, out_file);
     } else if (compute_count) {
-        CountMatrixGenerator listener(files, stats, lines, connectivity);
+        CountMatrixGenerator listener(connectivity);
         parse_json(listener, json_in, out_file);
     } else {
         // Print number of occurrences of repeated subsequences by file extension
-        OccurrenceCsvGenerator listener(files, stats, lines);
+        OccurrenceCsvGenerator listener;
         parse_json(listener, json_in, out_file);
     }
 
