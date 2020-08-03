@@ -29,7 +29,7 @@ def run_preprocessor(args, intermediary):
     if args.extensions:
         pre_args.extend(['--extensions', *args.extensions])
     if args.linemap:
-        pre_args.extend(['--linemap', args.linemap])
+        pre_args.extend(['--linemap', args.linemap.name])
     if args.nl:
         pre_args.append('-nl')
     if args.nl2s:
@@ -79,7 +79,7 @@ def run_postprocessor(args, intermediary, output):
         "-m", str(args.minrepeat)
     ]
     if args.linemap:
-        post_args.extend(['--linemap', args.linemap])
+        post_args.extend(['--linemap', args.linemap.name])
     if args.skip_blank:
         post_args.append('--skip-blank')
     if args.skip_null:
@@ -154,6 +154,8 @@ def parse_args():
                              help='Minimum size of the repeated sequences')
     scan_parser.add_argument('-i', '--intermediaries',
                              help='Output directory for intermediary files (default: regular output directory)')
+    scan_parser.add_argument('--linemap', type=argparse.FileType('w'),
+                           help='Export mappings from character position to line number')
     pre_group = scan_parser.add_argument_group('Pre-processing', 'Options for the "pre" step. '
                                                                  'Space-producing transformations are applied before '
                                                                  'space normalization.')
@@ -165,8 +167,6 @@ def parse_args():
                            help='Replace sequences of whitespace with a single common space (default: false)')
     pre_group.add_argument('--normalize-trailing', dest='ntr', action='store_true',
                            help='Truncate sequences of whitespace preceding a line feed (default: false)')
-    pre_group.add_argument('--linemap', type=argparse.FileType('w'),
-                           help='Export mappings from character position to line number')
     find_group = scan_parser.add_argument_group('Repeat Finding', 'Options for the "findmaxrep" step.')
     find_group.add_argument('--alt-finder', dest='alt_finder', action='store_true',
                             help='Use the alternative (slower) repeat finder (default: false)')
@@ -175,8 +175,6 @@ def parse_args():
                             help='Skip repeated sequences that only contain whitespace and control code (default: false)')
     post_group.add_argument('--skip-null', dest='skip_null', action='store_true',
                             help='Skip repeated sequences that only contain null (default: false)')
-    post_group.add_argument('--linemap', type=argparse.FileType('r'),
-                           help='Import and convert mappings from character position to line number')
     scan_parser.set_defaults(launch=run_scan)
     stat_parser = subparsers.add_parser('stats')
     stat_parser.add_argument('input', type=argparse.FileType('r'), help='JSON file emitted by the scan process')
