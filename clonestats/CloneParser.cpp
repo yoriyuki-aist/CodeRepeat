@@ -36,8 +36,7 @@ void CloneListener::startObject() {
 void CloneListener::endObject() {
     if (state == file_starts) {
         state = root;
-        statistics.similarity_matrix = SimpleMatrix<unsigned long>(files.size());
-        statistics.count_matrix = SimpleMatrix<unsigned long>(files.size());
+        postFileStarts();
     } else if (state == line_starts) {
         state = root;
     } else if (state == repeat) {
@@ -171,6 +170,10 @@ void DistanceMatrixGenerator::onRepeat(const RepeatData &repeat) {
     }
 }
 
+void DistanceMatrixGenerator::postFileStarts() {
+    statistics.similarity_matrix = SimpleMatrix<unsigned long>(files.size());
+}
+
 void CountMatrixGenerator::onRepeat(const RepeatData &repeat) {
     for (const FileData &source_file : repeat.occurrences) {
         // similarity[x, y] += (size of the repeat) * (combined number of occurrences in x and y)
@@ -212,6 +215,10 @@ void CountMatrixGenerator::printResults(std::ostream &out) {
         }
         out << "\n";
     }
+}
+
+void CountMatrixGenerator::postFileStarts() {
+    statistics.count_matrix = SimpleMatrix<unsigned long>(files.size());
 }
 
 void OccurrenceCsvGenerator::printResults(std::ostream &out) {

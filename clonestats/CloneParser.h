@@ -130,6 +130,8 @@ public:
 
 protected:
     void onRepeat(const RepeatData &repeat) override;
+
+    void postFileStarts() override;
 };
 
 class CountMatrixGenerator : public CloneListener {
@@ -142,6 +144,8 @@ public:
 
 protected:
     void onRepeat(const RepeatData &repeat) override;
+
+    void postFileStarts() override;
 };
 
 class OccurrenceCsvGenerator : public CloneListener {
