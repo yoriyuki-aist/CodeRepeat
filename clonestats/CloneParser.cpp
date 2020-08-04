@@ -5,6 +5,8 @@
 
 #include "CloneParser.h"
 
+namespace fs = std::filesystem;
+
 
 void CloneListener::startDocument() {
     // NO-OP
@@ -70,9 +72,11 @@ void CloneListener::value(std::string value) {
     } else if (state == line_starts) {
         (*lines)[std::stoul(value)] = std::stoul(last_key);
     } else if (state == positions) {
-        FileData &source = (--files.upper_bound(std::stoul(value)))->second;
+        unsigned long pos = std::stoul(value);
+        FileData &source = (--files.upper_bound(pos))->second;
         current_repeat.occurrences.push_back(source);
         current_repeat.file_ids.insert(source.id);
+        current_repeat.positions.push_back(pos);
     } else if (state == repeat && last_key == "text") {
         current_repeat.text = value;
     } else if (state == repeat && last_key == "length") {
@@ -250,4 +254,28 @@ void OccurrenceCsvGenerator::onRepeat(const RepeatData &repeat) {
             occ.unique++;
         }
     }
+}
+
+void TestCsvGenerator::onRepeat(const RepeatData &repeat) {
+    if (!lines) throw std::runtime_error("Missing line mappings");
+
+    for (const auto &pos : repeat.positions) {
+        for (const auto &pos2 : repeat.positions) {
+            if (pos != pos2) {
+                FileData &source = (--files.upper_bound(pos))->second;
+                fs::path p1(source.name);
+                unsigned long line = (--lines->upper_bound(pos))->second;
+                std::cout << p1.parent_path().filename() << "," << p1.filename() << "," << line;
+                FileData &source2 = (--files.upper_bound(pos))->second;
+                fs::path p2(source2.name);
+                unsigned long line2 = (--lines->upper_bound(pos2))->second;
+                std::cout << p2.parent_path().filename() << "," << p2.filename() << "," << line2;
+            }
+        }
+    }
+}
+
+void TestCsvGenerator::printResults(std::ostream &out) {
+    // TODO
+    throw std::runtime_error("TODO");
 }

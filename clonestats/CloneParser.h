@@ -63,6 +63,7 @@ struct RepeatData {
     long length{-1};
     std::vector<FileData> occurrences{};
     std::unordered_set<unsigned> file_ids{};
+    std::vector<unsigned long> positions{};
 };
 
 class CloneListener : public JsonListener {
@@ -143,6 +144,18 @@ private:
     std::unordered_map<std::string, std::map<unsigned long, OccurrenceCounter>> occurrences;
 public:
     OccurrenceCsvGenerator() : CloneListener() {}
+
+    void printResults(std::ostream &out) override;
+
+protected:
+    void onRepeat(const RepeatData &repeat) override;
+};
+
+class TestCsvGenerator : public CloneListener {
+private:
+    std::vector<std::pair<unsigned long, unsigned long>> clone_pairs {};
+public:
+    TestCsvGenerator() : CloneListener() {}
 
     void printResults(std::ostream &out) override;
 

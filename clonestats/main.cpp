@@ -43,6 +43,7 @@ int main(int argc, char **argv) {
     std::optional<std::string> connectivity = args.getCmdArg("--connectivity");
     bool compute_distance = args.cmdOptionExists("--distance");
     bool compute_count = args.cmdOptionExists("--count");
+    bool bigcloneeval = args.cmdOptionExists("--bigcloneeval");
 
     std::ifstream json_in(json_file);
 
@@ -51,7 +52,10 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    if (compute_distance) {
+    if (bigcloneeval) {
+        TestCsvGenerator listener;
+        parse_json(listener, json_in, out_file);
+    } else if (compute_distance) {
         DistanceMatrixGenerator listener(connectivity);
         parse_json(listener, json_in, out_file);
     } else if (compute_count) {
