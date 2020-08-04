@@ -22,11 +22,6 @@ struct FileData {
     std::string ext;
 };
 
-struct RepeatDigest {
-    std::string text;
-    unsigned long occurrences;
-};
-
 template<typename T>
 class SimpleMatrix {
 private:
@@ -57,15 +52,6 @@ public:
     }
 };
 
-struct Statistics {
-    // extension -> repeat size -> number of occurrences
-    std::unordered_map<std::string, std::map<unsigned long, OccurrenceCounter>> occurrences;
-    // [file id, file id] -> similarity
-    SimpleMatrix<unsigned long> similarity_matrix{0};
-    // [file id, file id] -> number of clones
-    SimpleMatrix<unsigned long> count_matrix{0};
-};
-
 enum State {
     start, root, file_starts, line_starts, repeats, repeat, positions, done
 };
@@ -86,7 +72,6 @@ private:
     std::string last_key{};
 
 protected:
-    Statistics statistics{};
     // position in the concatenated file -> extension+id of the source file
     // will be empty if the "file_starts" object is not parsed before the "repeats"!
     std::map<unsigned long, FileData> files{};
@@ -123,6 +108,8 @@ public:
 
 class DistanceMatrixGenerator : public CloneListener {
 private:
+    // [file id, file id] -> similarity
+    SimpleMatrix<unsigned long> similarity_matrix{0};
     std::optional<std::string> connectivity;
 public:
     explicit DistanceMatrixGenerator(std::optional<std::string> &connectivity) : CloneListener(), connectivity(connectivity) {}
@@ -137,6 +124,8 @@ protected:
 class CountMatrixGenerator : public CloneListener {
 private:
     std::optional<std::string> connectivity;
+    // [file id, file id] -> number of clones
+    SimpleMatrix<unsigned long> count_matrix{0};
 public:
     explicit CountMatrixGenerator(std::optional<std::string> &connectivity) : CloneListener(),
                                                                      connectivity(connectivity) {}
@@ -149,6 +138,9 @@ protected:
 };
 
 class OccurrenceCsvGenerator : public CloneListener {
+private:
+    // extension -> repeat size -> number of occurrences
+    std::unordered_map<std::string, std::map<unsigned long, OccurrenceCounter>> occurrences;
 public:
     OccurrenceCsvGenerator() : CloneListener() {}
 

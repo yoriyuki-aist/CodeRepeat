@@ -136,13 +136,13 @@ void DistanceMatrixGenerator::printResults(std::ostream &out) {
 
     out << "\n";
 
-    for (int i = 0; i < statistics.similarity_matrix.size() - 1; i++) {    // discard the dummy
-        for (int j = 0; j < statistics.similarity_matrix.size() - 1; j++) {
+    for (int i = 0; i < similarity_matrix.size() - 1; i++) {    // discard the dummy
+        for (int j = 0; j < similarity_matrix.size() - 1; j++) {
             if (j > 0) {   // no separator for the first value of the line
                 out << ",";
                 if (connect) *connect << ",";
             }
-            unsigned long val = statistics.similarity_matrix.at(i, j) + statistics.similarity_matrix.at(j, i);
+            unsigned long val = similarity_matrix.at(i, j) + similarity_matrix.at(j, i);
             if (i == j) {
                 out << 0;
                 if (connect) *connect << 1;
@@ -165,20 +165,20 @@ void DistanceMatrixGenerator::onRepeat(const RepeatData &repeat) {
     for (const FileData &source_file : repeat.occurrences) {
         // similarity[x, y] += (size of the repeat) * (combined number of occurrences in x and y)
         for (unsigned file_id : repeat.file_ids) {
-            statistics.similarity_matrix.at(source_file.id, file_id) += size;
+            similarity_matrix.at(source_file.id, file_id) += size;
         }
     }
 }
 
 void DistanceMatrixGenerator::postFileStarts() {
-    statistics.similarity_matrix = SimpleMatrix<unsigned long>(files.size());
+    similarity_matrix = SimpleMatrix<unsigned long>(files.size());
 }
 
 void CountMatrixGenerator::onRepeat(const RepeatData &repeat) {
     for (const FileData &source_file : repeat.occurrences) {
         // similarity[x, y] += (size of the repeat) * (combined number of occurrences in x and y)
         for (unsigned file_id : repeat.file_ids) {
-            statistics.count_matrix.at(source_file.id, file_id) += 1;
+            count_matrix.at(source_file.id, file_id) += 1;
         }
     }
 }
@@ -206,24 +206,24 @@ void CountMatrixGenerator::printResults(std::ostream &out) {
     out << "\n";
     auto it = files.begin();
 
-    for (int i = 0; i < statistics.count_matrix.size() - 1; i++) {    // discard the dummy
+    for (int i = 0; i < count_matrix.size() - 1; i++) {    // discard the dummy
         out << it->second.name;
         ++it;
-        for (int j = 0; j < statistics.count_matrix.size() - 1; j++) {
+        for (int j = 0; j < count_matrix.size() - 1; j++) {
             out << ",";
-            out << statistics.count_matrix.at(i, j) + statistics.count_matrix.at(j, i);
+            out << count_matrix.at(i, j) + count_matrix.at(j, i);
         }
         out << "\n";
     }
 }
 
 void CountMatrixGenerator::postFileStarts() {
-    statistics.count_matrix = SimpleMatrix<unsigned long>(files.size());
+    count_matrix = SimpleMatrix<unsigned long>(files.size());
 }
 
 void OccurrenceCsvGenerator::printResults(std::ostream &out) {
     out << "File extension,Size,Occurrence(s),unique sequence(s)\n";
-    for (const auto &ext_entry : statistics.occurrences) {
+    for (const auto &ext_entry : occurrences) {
         for (const auto &size_entry : ext_entry.second) {
             out << (ext_entry.first.empty() ? "(none)" : ext_entry.first) << ',';
             out << size_entry.first << "," << size_entry.second.total << ",";
@@ -240,7 +240,7 @@ void OccurrenceCsvGenerator::onRepeat(const RepeatData &repeat) {
     std::unordered_map<unsigned, unsigned> repeats_per_file;
 
     for (const FileData &source_file : repeat.occurrences) {
-        auto &occ = statistics.occurrences[source_file.ext][size];
+        auto &occ = occurrences[source_file.ext][size];
         count++;
         occ.total++;
         repeats_per_file[source_file.id]++;
