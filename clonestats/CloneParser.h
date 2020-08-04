@@ -60,8 +60,6 @@ public:
 struct Statistics {
     // extension -> repeat size -> number of occurrences
     std::unordered_map<std::string, std::map<unsigned long, OccurrenceCounter>> occurrences;
-    // subtext -> number of occurrences
-    std::vector<RepeatDigest> repeats;
     // [file id, file id] -> similarity
     SimpleMatrix<unsigned long> similarity_matrix{0};
     // [file id, file id] -> number of clones
@@ -129,6 +127,9 @@ private:
 public:
     explicit DistanceMatrixGenerator(std::optional<std::string> &connectivity) : CloneListener(), connectivity(connectivity) {}
     void printResults(std::ostream &out) override;
+
+protected:
+    void onRepeat(const RepeatData &repeat) override;
 };
 
 class CountMatrixGenerator : public CloneListener {
@@ -138,6 +139,9 @@ public:
     explicit CountMatrixGenerator(std::optional<std::string> &connectivity) : CloneListener(),
                                                                      connectivity(connectivity) {}
     void printResults(std::ostream &out) override;
+
+protected:
+    void onRepeat(const RepeatData &repeat) override;
 };
 
 class OccurrenceCsvGenerator : public CloneListener {
@@ -145,4 +149,7 @@ public:
     OccurrenceCsvGenerator() : CloneListener() {}
 
     void printResults(std::ostream &out) override;
+
+protected:
+    void onRepeat(const RepeatData &repeat) override;
 };
