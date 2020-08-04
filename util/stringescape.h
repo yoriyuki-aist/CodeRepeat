@@ -2,8 +2,6 @@
 
 #include <fstream>
 
-#include "stringescape.h"
-
 unsigned int utf8ToCodepoint(const char *&s, const char *e) {
     const unsigned int REPLACEMENT_CHARACTER = 0xFFFD;
 

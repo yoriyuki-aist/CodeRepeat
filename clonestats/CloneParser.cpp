@@ -1,4 +1,7 @@
 #include <filesystem>
+#include <iostream>
+#include <fstream>
+#include <ctgmath>
 
 #include "CloneParser.h"
 
@@ -33,8 +36,7 @@ void CloneListener::startObject() {
 void CloneListener::endObject() {
     if (state == file_starts) {
         state = root;
-        statistics.similarity_matrix = SimpleMatrix<unsigned long>(files.size());
-        statistics.count_matrix = SimpleMatrix<unsigned long>(files.size());
+        postFileStarts();
     } else if (state == line_starts) {
         state = root;
     } else if (state == repeat) {
@@ -47,31 +49,8 @@ void CloneListener::endObject() {
             " chars, got " + std::to_string(current_repeat.text.length()));
         }
 
-        unsigned count = 0;
-        std::unordered_set<extension> encountered_exts;
-        std::unordered_map<unsigned, unsigned> repeats_per_file;
+        onRepeat(current_repeat);
 
-        for (const FileData &source_file : current_repeat.occurrences) {
-            auto &occ = statistics.occurrences[source_file.ext][size];
-            count++;
-            occ.total++;
-            repeats_per_file[source_file.id]++;
-
-            // Only works if the entries in the JSON are unique themselves (no 2 entries with the same text)
-            if (encountered_exts.insert(source_file.ext).second) {
-                occ.unique++;
-            }
-
-            // similarity[x, y] += (size of the repeat) * (combined number of occurrences in x and y)
-            for (unsigned file_id : current_repeat.file_ids) {
-                statistics.similarity_matrix.at(source_file.id, file_id) += size;
-            }
-            for (unsigned file_id : current_repeat.file_ids) {
-                statistics.count_matrix.at(source_file.id, file_id) += 1;
-            }
-        }
-
-        statistics.repeats.push_back({current_repeat.text, count});
         current_repeat.file_ids.clear();
         current_repeat.occurrences.clear();
         current_repeat.text.clear();
@@ -127,3 +106,148 @@ void CloneListener::endDocument() {
     // NO-OP
 }
 
+void DistanceMatrixGenerator::printResults(std::ostream &out) {
+    std::optional<std::ofstream> connect;
+
+    if (connectivity) {
+        connect = std::ofstream(*connectivity);
+
+        if (!*connect) {
+            std::cerr << "output file open fails. exit.\n";
+            exit(1);
+        }
+    }
+
+    const auto &concat_end = files.crbegin();  // special last pair
+    if (!concat_end->second.name.empty()) throw std::runtime_error("Last file mapping should use the empty string as name");
+
+    unsigned long file_lengths[files.size()];
+    unsigned long last_file_start{};
+
+    for (const auto &f : files) {
+        unsigned int file_id = f.second.id;
+        if (file_id > 0) {
+            out << ",";
+            file_lengths[file_id - 1] = f.first - last_file_start;
+        }
+        out << f.second.name;
+        last_file_start = f.first;
+    }
+
+    out << "\n";
+
+    for (int i = 0; i < similarity_matrix.size() - 1; i++) {    // discard the dummy
+        for (int j = 0; j < similarity_matrix.size() - 1; j++) {
+            if (j > 0) {   // no separator for the first value of the line
+                out << ",";
+                if (connect) *connect << ",";
+            }
+            unsigned long val = similarity_matrix.at(i, j) + similarity_matrix.at(j, i);
+            if (i == j) {
+                out << 0;
+                if (connect) *connect << 1;
+            } else if (val == 0) {
+                out << 1e2;
+                if (connect) *connect << 0;
+            } else {
+                out << log((double) (file_lengths[i] + file_lengths[j])) - log((double) val);
+                if (connect) *connect << 1;
+            }
+        }
+        out << "\n";
+        if (connect) *connect << "\n";
+    }
+}
+
+void DistanceMatrixGenerator::onRepeat(const RepeatData &repeat) {
+    auto size = repeat.text.size();
+
+    for (const FileData &source_file : repeat.occurrences) {
+        // similarity[x, y] += (size of the repeat) * (combined number of occurrences in x and y)
+        for (unsigned file_id : repeat.file_ids) {
+            similarity_matrix.at(source_file.id, file_id) += size;
+        }
+    }
+}
+
+void DistanceMatrixGenerator::postFileStarts() {
+    similarity_matrix = SimpleMatrix<unsigned long>(files.size());
+}
+
+void CountMatrixGenerator::onRepeat(const RepeatData &repeat) {
+    for (const FileData &source_file : repeat.occurrences) {
+        // similarity[x, y] += (size of the repeat) * (combined number of occurrences in x and y)
+        for (unsigned file_id : repeat.file_ids) {
+            count_matrix.at(source_file.id, file_id) += 1;
+        }
+    }
+}
+
+void CountMatrixGenerator::printResults(std::ostream &out) {
+    const auto &concat_end = files.crbegin();  // special last pair
+    if (!concat_end->second.name.empty()) throw std::runtime_error("Last file mapping should use the empty string as name");
+
+    unsigned long file_count = files.size();
+    unsigned long file_lengths[file_count];
+    unsigned long last_file_start{};
+
+    for (const auto &f : files) {
+        unsigned int file_id = f.second.id;
+        if (file_id < file_count - 1) {
+            out << ",";
+        }
+        if (file_id > 0) {
+            file_lengths[file_id - 1] = f.first - last_file_start;
+        }
+        out << f.second.name;
+        last_file_start = f.first;
+    }
+
+    out << "\n";
+    auto it = files.begin();
+
+    for (int i = 0; i < count_matrix.size() - 1; i++) {    // discard the dummy
+        out << it->second.name;
+        ++it;
+        for (int j = 0; j < count_matrix.size() - 1; j++) {
+            out << ",";
+            out << count_matrix.at(i, j) + count_matrix.at(j, i);
+        }
+        out << "\n";
+    }
+}
+
+void CountMatrixGenerator::postFileStarts() {
+    count_matrix = SimpleMatrix<unsigned long>(files.size());
+}
+
+void OccurrenceCsvGenerator::printResults(std::ostream &out) {
+    out << "File extension,Size,Occurrence(s),unique sequence(s)\n";
+    for (const auto &ext_entry : occurrences) {
+        for (const auto &size_entry : ext_entry.second) {
+            out << (ext_entry.first.empty() ? "(none)" : ext_entry.first) << ',';
+            out << size_entry.first << "," << size_entry.second.total << ",";
+            out << size_entry.second.unique;
+            out << "\n";
+        }
+    }
+}
+
+void OccurrenceCsvGenerator::onRepeat(const RepeatData &repeat) {
+    unsigned size = repeat.text.size();
+    unsigned count = 0;
+    std::unordered_set<extension> encountered_exts;
+    std::unordered_map<unsigned, unsigned> repeats_per_file;
+
+    for (const FileData &source_file : repeat.occurrences) {
+        auto &occ = occurrences[source_file.ext][size];
+        count++;
+        occ.total++;
+        repeats_per_file[source_file.id]++;
+
+        // Only works if the entries in the JSON are unique themselves (no 2 entries with the same text)
+        if (encountered_exts.insert(source_file.ext).second) {
+            occ.unique++;
+        }
+    }
+}

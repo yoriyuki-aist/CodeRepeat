@@ -22,11 +22,6 @@ struct FileData {
     std::string ext;
 };
 
-struct RepeatDigest {
-    std::string text;
-    unsigned long occurrences;
-};
-
 template<typename T>
 class SimpleMatrix {
 private:
@@ -57,17 +52,6 @@ public:
     }
 };
 
-struct Statistics {
-    // extension -> repeat size -> number of occurrences
-    std::unordered_map<std::string, std::map<unsigned long, OccurrenceCounter>> occurrences;
-    // subtext -> number of occurrences
-    std::vector<RepeatDigest> repeats;
-    // [file id, file id] -> similarity
-    SimpleMatrix<unsigned long> similarity_matrix{0};
-    // [file id, file id] -> number of clones
-    SimpleMatrix<unsigned long> count_matrix{0};
-};
-
 enum State {
     start, root, file_starts, line_starts, repeats, repeat, positions, done
 };
@@ -86,18 +70,20 @@ private:
     State state{start};
     RepeatData current_repeat{};
     std::string last_key{};
+
+protected:
     // position in the concatenated file -> extension+id of the source file
     // will be empty if the "file_starts" object is not parsed before the "repeats"!
-    std::map<unsigned long, FileData> &files;
+    std::map<unsigned long, FileData> files{};
     // position in the concatenated file -> line number in the source file
     // may be empty if the "line_starts" object does not exist
-    std::optional<std::map<unsigned long, unsigned long>> &lines;
-    Statistics &statistics;
+    std::optional<std::map<unsigned long, unsigned long>> lines{};
+
+    virtual void postFileStarts() {};
+    virtual void onRepeat(const RepeatData &repeat) {};
 
 public:
-    CloneListener(std::map<unsigned long, FileData> &files, Statistics &statistics,
-                  std::optional<std::map<unsigned long, unsigned long>> &lines) :
-            files(files), statistics(statistics), lines(lines) {};
+    CloneListener() = default;
 
     void whitespace(char c) override;
 
@@ -116,4 +102,50 @@ public:
     void startArray() override;
 
     void startObject() override;
+
+    virtual void printResults(std::ostream &out) = 0;
+};
+
+class DistanceMatrixGenerator : public CloneListener {
+private:
+    // [file id, file id] -> similarity
+    SimpleMatrix<unsigned long> similarity_matrix{0};
+    std::optional<std::string> connectivity;
+public:
+    explicit DistanceMatrixGenerator(std::optional<std::string> &connectivity) : CloneListener(), connectivity(connectivity) {}
+    void printResults(std::ostream &out) override;
+
+protected:
+    void onRepeat(const RepeatData &repeat) override;
+
+    void postFileStarts() override;
+};
+
+class CountMatrixGenerator : public CloneListener {
+private:
+    std::optional<std::string> connectivity;
+    // [file id, file id] -> number of clones
+    SimpleMatrix<unsigned long> count_matrix{0};
+public:
+    explicit CountMatrixGenerator(std::optional<std::string> &connectivity) : CloneListener(),
+                                                                     connectivity(connectivity) {}
+    void printResults(std::ostream &out) override;
+
+protected:
+    void onRepeat(const RepeatData &repeat) override;
+
+    void postFileStarts() override;
+};
+
+class OccurrenceCsvGenerator : public CloneListener {
+private:
+    // extension -> repeat size -> number of occurrences
+    std::unordered_map<std::string, std::map<unsigned long, OccurrenceCounter>> occurrences;
+public:
+    OccurrenceCsvGenerator() : CloneListener() {}
+
+    void printResults(std::ostream &out) override;
+
+protected:
+    void onRepeat(const RepeatData &repeat) override;
 };
