@@ -250,7 +250,7 @@ void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_
             if (sep) json_out << ",\n";
             else sep = true;
 
-            json_out << "\t\t" << lineentry.second << ": " << lineentry.first;
+            json_out << "\t\t\"" << lineentry.second << "\": " << lineentry.first;
         }
 
         json_out << "\n\t},\n";
