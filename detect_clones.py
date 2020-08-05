@@ -130,6 +130,9 @@ def run_stats(args):
     if args.distance:
         stats_args.append('--distance')
 
+    if args.bigcloneeval:
+        stats_args.append('--bigcloneeval')
+
     if args.connectivity:
         stats_args.extend(['--connectivity', args.connectivity.name])
 
@@ -183,6 +186,7 @@ def parse_args():
     stat_parser.add_argument('--distance', action='store_true', help='Create a distance matrix')
     stat_parser.add_argument('--connectivity', type=argparse.FileType('w'), help='Saves a connectivity matrix to '
                                                                                  'the given file')
+    stat_parser.add_argument('--bigcloneeval', action='store_true', help='Export CSV file with the BigCloneEval format')
     stat_parser.set_defaults(launch=run_stats)
 
     return parser.parse_args()

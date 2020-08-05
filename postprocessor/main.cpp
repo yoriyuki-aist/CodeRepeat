@@ -171,6 +171,7 @@ int main(int argc, char **argv) {
 
     if (linemap_file) {
         std::ifstream linemap_in(*linemap_file);
+        linemap.emplace();
 
         if (!linemap_in) {
             std::cerr << "linemap output file open fails. exit.\n";
@@ -183,7 +184,7 @@ int main(int argc, char **argv) {
                 break;
             }
             std::getline(linemap_in, line);
-            charmap[char_idx] = line;
+            (*linemap)[char_idx] = std::stoul(line);
         }
     }
 
@@ -226,7 +227,8 @@ void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_
 
     std::cout << "Writing JSON to " << opts.json_file << "\n";
 
-    json_out << "{\n\t\"version\": 0,\n\t\"file_starts\": {\n";
+    json_out << "{\n\t\"version\": 0,\n";
+    json_out << "\t\"file_starts\": {\n";
 
     bool sep = false;
     for (const auto &charentry : charmap) {
