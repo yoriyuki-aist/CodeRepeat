@@ -259,18 +259,19 @@ void OccurrenceCsvGenerator::onRepeat(const RepeatData &repeat) {
 void TestCsvGenerator::onRepeat(const RepeatData &repeat) {
     if (!lines) throw std::runtime_error("Missing line mappings");
 
-    for (const auto &pos : repeat.positions) {
-        for (const auto &pos2 : repeat.positions) {
-            if (pos != pos2) {
-                FileData &source = (--files.upper_bound(pos))->second;
-                fs::path p1(source.name);
-                unsigned long line = (--lines->upper_bound(pos))->second;
-                std::cout << p1.parent_path().filename() << "," << p1.filename() << "," << line;
-                FileData &source2 = (--files.upper_bound(pos))->second;
-                fs::path p2(source2.name);
-                unsigned long line2 = (--lines->upper_bound(pos2))->second;
-                std::cout << p2.parent_path().filename() << "," << p2.filename() << "," << line2;
-            }
+    unsigned long size = repeat.positions.size();
+    for (int i = 0; i < size-1; i++) {
+        for (int j = i+1; j < size; j++) {
+            const auto &pos = repeat.positions[i];
+            FileData &source = (--files.upper_bound(pos))->second;
+            fs::path p1(source.name);
+            unsigned long line = (--lines->upper_bound(pos))->second;
+            std::cout << p1.parent_path().filename() << "," << p1.filename() << "," << line;
+            const auto &pos2 = repeat.positions[j];
+            FileData &source2 = (--files.upper_bound(pos2))->second;
+            fs::path p2(source2.name);
+            unsigned long line2 = (--lines->upper_bound(pos2))->second;
+            std::cout << p2.parent_path().filename() << "," << p2.filename() << "," << line2;
         }
     }
 }
