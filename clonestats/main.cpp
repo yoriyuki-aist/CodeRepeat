@@ -177,7 +177,7 @@ print_count_matrix(const SimpleMatrix<unsigned long> &count_matrix, const std::m
     for (const auto &f : files) {
         unsigned int file_id = f.second.id;
         if (file_id < file_count - 1) {
-            out << ",";
+            out << "File name,";
         }
         if (file_id > 0) {
             file_lengths[file_id - 1] = f.first - last_file_start;
