@@ -79,6 +79,7 @@ protected:
     // position in the concatenated file -> line number in the source file
     // may be empty if the "line_starts" object does not exist
     std::optional<std::map<unsigned long, unsigned long>> lines{};
+    std::ostream *out {&std::cout};
 
     virtual void postFileStarts() {};
     virtual void onRepeat(const RepeatData &repeat) {};
@@ -104,7 +105,11 @@ public:
 
     void startObject() override;
 
-    virtual void printResults(std::ostream &out) = 0;
+    void output(std::ostream &ostream) {
+        this->out = &ostream;
+    }
+
+    virtual void end() = 0;
 };
 
 class DistanceMatrixGenerator : public CloneListener {
@@ -114,7 +119,7 @@ private:
     std::optional<std::string> connectivity;
 public:
     explicit DistanceMatrixGenerator(std::optional<std::string> &connectivity) : CloneListener(), connectivity(connectivity) {}
-    void printResults(std::ostream &out) override;
+    void end() override;
 
 protected:
     void onRepeat(const RepeatData &repeat) override;
@@ -130,7 +135,7 @@ private:
 public:
     explicit CountMatrixGenerator(std::optional<std::string> &connectivity) : CloneListener(),
                                                                      connectivity(connectivity) {}
-    void printResults(std::ostream &out) override;
+    void end() override;
 
 protected:
     void onRepeat(const RepeatData &repeat) override;
@@ -145,7 +150,7 @@ private:
 public:
     OccurrenceCsvGenerator() : CloneListener() {}
 
-    void printResults(std::ostream &out) override;
+    void end() override;
 
 protected:
     void onRepeat(const RepeatData &repeat) override;
@@ -157,7 +162,7 @@ private:
 public:
     TestCsvGenerator() : CloneListener() {}
 
-    void printResults(std::ostream &out) override;
+    void end() override {}
 
 protected:
     void onRepeat(const RepeatData &repeat) override;

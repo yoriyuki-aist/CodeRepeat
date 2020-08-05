@@ -9,11 +9,6 @@ void parse_json(CloneListener &listener, std::ifstream &json_in, std::optional<s
     JsonStreamingParser parser;
     parser.setListener(&listener);
 
-    char c;
-    while (json_in.get(c)) {
-        parser.parse(c);
-    }
-
     if (out_file) {
         std::ofstream out(*out_file);
 
@@ -22,10 +17,15 @@ void parse_json(CloneListener &listener, std::ifstream &json_in, std::optional<s
             exit(1);
         }
 
-        listener.printResults(out);
-    } else {
-        listener.printResults(std::cout);
+        listener.output(out);
     }
+
+    char c;
+    while (json_in.get(c)) {
+        parser.parse(c);
+    }
+
+    listener.end();
 }
 
 namespace fs = std::filesystem;
