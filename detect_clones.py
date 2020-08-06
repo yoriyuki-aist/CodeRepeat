@@ -29,7 +29,7 @@ def run_preprocessor(args, intermediary):
     if args.extensions:
         pre_args.extend(['--extensions', *args.extensions])
     if args.linemap:
-        pre_args.extend(['--linemap', args.linemap.name])
+        pre_args.extend(['--linemap', '{}.linemap'.format(intermediary)])
     if args.nl:
         pre_args.append('-nl')
     if args.nl2s:
@@ -79,7 +79,7 @@ def run_postprocessor(args, intermediary, output):
         "-m", str(args.minrepeat)
     ]
     if args.linemap:
-        post_args.extend(['--linemap', args.linemap.name])
+        post_args.extend(['--linemap', '{}.linemap'.format(intermediary)])
     if args.skip_blank:
         post_args.append('--skip-blank')
     if args.skip_null:
@@ -157,7 +157,7 @@ def parse_args():
                              help='Minimum size of the repeated sequences')
     scan_parser.add_argument('-i', '--intermediaries',
                              help='Output directory for intermediary files (default: regular output directory)')
-    scan_parser.add_argument('--linemap', type=argparse.FileType('w'),
+    scan_parser.add_argument('--linemap', action='store_true',
                            help='Export mappings from character position to line number')
     pre_group = scan_parser.add_argument_group('Pre-processing', 'Options for the "pre" step. '
                                                                  'Space-producing transformations are applied before '
