@@ -105,8 +105,8 @@ public:
 
     void startObject() override;
 
-    void output(std::ostream &ostream) {
-        this->out = &ostream;
+    void output(std::ostream *ostream) {
+        this->out = ostream;
     }
 
     virtual void end() = 0;

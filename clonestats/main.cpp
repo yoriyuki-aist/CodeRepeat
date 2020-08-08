@@ -9,15 +9,17 @@ void parse_json(CloneListener &listener, std::ifstream &json_in, std::optional<s
     JsonStreamingParser parser;
     parser.setListener(&listener);
 
+    std::ofstream out;
+
     if (out_file) {
-        std::ofstream out(*out_file);
+        out = std::ofstream(*out_file);
 
         if (!out) {
             std::cerr << "output file open fails. exit.\n";
             exit(1);
         }
 
-        listener.output(out);
+        listener.output(&out);
     }
 
     char c;
