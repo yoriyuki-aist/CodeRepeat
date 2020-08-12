@@ -84,6 +84,8 @@ def run_postprocessor(args, intermediary, output):
         post_args.append('--skip-blank')
     if args.skip_null:
         post_args.append('--skip-null')
+    if args.verbose:
+        post_args.append('--verbose')
     run(post_args)
 
 
@@ -158,7 +160,7 @@ def parse_args():
     scan_parser.add_argument('-i', '--intermediaries',
                              help='Output directory for intermediary files (default: regular output directory)')
     scan_parser.add_argument('--linemap', action='store_true',
-                           help='Export mappings from character position to line number')
+                             help='Export mappings from character position to line number')
     pre_group = scan_parser.add_argument_group('Pre-processing', 'Options for the "pre" step. '
                                                                  'Space-producing transformations are applied before '
                                                                  'space normalization.')
@@ -175,9 +177,13 @@ def parse_args():
                             help='Use the alternative (slower) repeat finder (default: false)')
     post_group = scan_parser.add_argument_group('Post-processing', 'Options for the "post" step')
     post_group.add_argument('--skip-blank', dest='skip_blank', action='store_true',
-                            help='Skip repeated sequences that only contain whitespace and control code (default: false)')
+                            help='Skip repeated sequences that only contain whitespace and control code'
+                                 '(default: false)')
     post_group.add_argument('--skip-null', dest='skip_null', action='store_true',
                             help='Skip repeated sequences that only contain null (default: false)')
+    post_group.add_argument('--verbose', action='store_true',
+                            help='Output the JSON in a verbose format including file position for each clone location'
+                                 '(default: false)')
     scan_parser.set_defaults(launch=run_scan)
     stat_parser = subparsers.add_parser('stats')
     stat_parser.add_argument('input', type=argparse.FileType('r'), help='JSON file emitted by the scan process')
