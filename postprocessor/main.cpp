@@ -343,11 +343,9 @@ emit_verbose_repeat(std::ostream &json_out, const std::string& subtext, const st
         auto start_line = *--linemap->upper_bound(pos);
         json_out << "\t\t\t\t{\"path\": \"" << filename << "\", ";
         json_out << "\"start_line\": " << start_line.second << ", ";
-        json_out << "\"start_pos\": " << pos - start_line.first << ", ";
         unsigned long end_pos = pos + subtext.length();
         auto end_line = *--linemap->upper_bound(end_pos);
-        json_out << "\"end_line\": " << end_line.second << ", ";
-        json_out << "\"end_pos\": " << pos - end_line.first << "}";
+        json_out << "\"end_line\": " << end_line.second << "}";
         print_separator = true;
     }
 
