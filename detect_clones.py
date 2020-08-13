@@ -86,8 +86,9 @@ def run_postprocessor(args, intermediary, output):
         post_args.append('--skip-null')
     if args.verbose:
         post_args.append('--verbose')
+    if args.compress:
+        post_args.append('--compress')
     run(post_args)
-
 
 def run_scan(args):
     if not os.path.exists(args.src):
@@ -184,6 +185,8 @@ def parse_args():
     post_group.add_argument('--verbose', action='store_true',
                             help='Output the JSON in a verbose format including file position for each clone location'
                                  '(default: false)')
+    post_group.add_argument('--compress', '-z', dest='compress', action='store_true',
+                            help='Compress the JSON output')           
     scan_parser.set_defaults(launch=run_scan)
     stat_parser = subparsers.add_parser('stats')
     stat_parser.add_argument('input', type=argparse.FileType('r'), help='JSON file emitted by the scan process')
