@@ -71,37 +71,24 @@ def run_findrepset(args, intermediary):
 
 
 def run_postprocessor(args, intermediary, output):
-    if not args.compress:
-        post_args = [
-            "{}/bin/postprocessor".format(args.prefix),
-            "{}.output.txt".format(intermediary),
-            "{}.charmap".format(intermediary),
-            output.name,
-            "-m", str(args.minrepeat)
-        ]
-        if args.linemap:
-            post_args.extend(['--linemap', '{}.linemap'.format(intermediary)])
-        if args.skip_blank:
-            post_args.append('--skip-blank')
-        if args.skip_null:
-            post_args.append('--skip-null')
-        if args.verbose:
-            post_args.append('--verbose')
-        run(post_args)
-    else:
-        # FIXME: Avoid os.system
-        command = "/usr/bin/time {}/bin/postprocessor {}.output.txt {}.charmap /dev/fd/1 -m {}".format(
-            args.prefix, intermediary, intermediary, str(args.minrepeat))
-        if args.linemap:
-            command = command + ' --linemap {}.linemap'.format(intermediary)
-        if args.skip_blank:
-            command = command + ' --skip-blank'
-        if args.skip_null:
-            command = command + ' --skip-null'
-        if args.verbose:
-            command = command + ' --verbose'
-        command = command + ' |  gzip -c > {}'.format(output.name)
-        os.system(command)
+    post_args = [
+        "{}/bin/postprocessor".format(args.prefix),
+        "{}.output.txt".format(intermediary),
+        "{}.charmap".format(intermediary),
+        output.name,
+        "-m", str(args.minrepeat)
+    ]
+    if args.linemap:
+        post_args.extend(['--linemap', '{}.linemap'.format(intermediary)])
+    if args.skip_blank:
+        post_args.append('--skip-blank')
+    if args.skip_null:
+        post_args.append('--skip-null')
+    if args.verbose:
+        post_args.append('--verbose')
+    if args.compress:
+        post_args.append('--compress')
+    run(post_args)
 
 def run_scan(args):
     if not os.path.exists(args.src):

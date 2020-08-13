@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include "../util/stringescape.h"
 #include "../util/ArgParser.h"
+#include "zlib/zstr.hpp"
 
 namespace fs = std::filesystem;
 
@@ -17,6 +18,7 @@ struct ProcessingOptions {
     bool skip_blank_repeats;
     bool skip_null_repeats;
     bool verbose;
+    bool compress;
     std::string bwt_file;
     std::string json_file;
 };
@@ -27,7 +29,7 @@ void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_
 void emit_repeat(std::ostream &json_out, const std::string &subtext, const std::vector<unsigned long> &positions);
 
 void
-emit_verbose_repeat(std::ofstream &json_out, const std::string& text, const std::vector<unsigned long>& positions, const CharMap &charmap,
+emit_verbose_repeat(std::ostream &json_out, const std::string& subtext, const std::vector<unsigned long>& positions, const CharMap &charmap,
                     const std::optional<std::map<unsigned long, unsigned long>> &linemap);
 
 void
@@ -199,6 +201,7 @@ int main(int argc, char **argv) {
             args.cmdOptionExists("--skip-blank"),
             args.cmdOptionExists("--skip-null"),
             args.cmdOptionExists("--verbose"),
+            args.cmdOptionExists("--compress"),
             bwt_file,
             json_file
     };
@@ -228,7 +231,8 @@ void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_
         exit(1);
     }
 
-    std::ofstream json_out(opts.json_file);
+    std::unique_ptr<std::ostream> json_outp(opts.compress ? (std::ostream*) new zstr::ofstream(opts.json_file) : new std::ofstream(opts.json_file));
+    std::ostream &json_out = *json_outp;
 
     if (!json_out) {
         std::cerr << "JSON output file open fails. exit.\n";
@@ -321,11 +325,11 @@ void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_
 
     json_out << "\n\t]\n}";
 
-    json_out.close();
+    // json_out auto close
 }
 
 void
-emit_verbose_repeat(std::ofstream &json_out, const std::string& subtext, const std::vector<unsigned long>& positions, const CharMap &charmap,
+emit_verbose_repeat(std::ostream &json_out, const std::string& subtext, const std::vector<unsigned long>& positions, const CharMap &charmap,
                     const std::optional<std::map<unsigned long, unsigned long>> &linemap) {
     json_out << "\t\t{\n\t\t\t\"text\": ";
     write_escaped_string(json_out, subtext);
