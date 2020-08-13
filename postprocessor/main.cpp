@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
     std::ifstream charmap_in(charmap_file);
 
     if (!charmap_in) {
-        std::cout << "charmap file open fails. exit.\n";
+        std::cerr << "charmap file open fails. exit.\n";
         exit(1);
     }
 
@@ -235,7 +235,7 @@ void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_
         exit(1);
     }
 
-    std::cout << "Writing JSON to " << opts.json_file << "\n";
+    std::cerr << "Writing JSON to " << opts.json_file << "\n";
 
     json_out << "{\n\t\"version\": " << (opts.verbose ? 1 : 0);
     json_out << ",\n";

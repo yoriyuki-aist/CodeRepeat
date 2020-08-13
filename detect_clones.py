@@ -71,23 +71,37 @@ def run_findrepset(args, intermediary):
 
 
 def run_postprocessor(args, intermediary, output):
-    post_args = [
-        "{}/bin/postprocessor".format(args.prefix),
-        "{}.output.txt".format(intermediary),
-        "{}.charmap".format(intermediary),
-        output.name,
-        "-m", str(args.minrepeat)
-    ]
-    if args.linemap:
-        post_args.extend(['--linemap', '{}.linemap'.format(intermediary)])
-    if args.skip_blank:
-        post_args.append('--skip-blank')
-    if args.skip_null:
-        post_args.append('--skip-null')
-    if args.verbose:
-        post_args.append('--verbose')
-    run(post_args)
-
+    if not args.compress:
+        post_args = [
+            "{}/bin/postprocessor".format(args.prefix),
+            "{}.output.txt".format(intermediary),
+            "{}.charmap".format(intermediary),
+            output.name,
+            "-m", str(args.minrepeat)
+        ]
+        if args.linemap:
+            post_args.extend(['--linemap', '{}.linemap'.format(intermediary)])
+        if args.skip_blank:
+            post_args.append('--skip-blank')
+        if args.skip_null:
+            post_args.append('--skip-null')
+        if args.verbose:
+            post_args.append('--verbose')
+        run(post_args)
+    else:
+        # FIXME: Avoid os.system
+        command = "/usr/bin/time {}/bin/postprocessor {}.output.txt {}.charmap /dev/fd/1 -m {}".format(
+            args.prefix, intermediary, intermediary, str(args.minrepeat))
+        if args.linemap:
+            command = command + ' --linemap {}.linemap'.format(intermediary)
+        if args.skip_blank:
+            command = command + ' --skip-blank'
+        if args.skip_null:
+            command = command + ' --skip-null'
+        if args.verbose:
+            command = command + ' --verbose'
+        command = command + ' |  gzip -c > {}'.format(output.name)
+        os.system(command)
 
 def run_scan(args):
     if not os.path.exists(args.src):
@@ -184,6 +198,8 @@ def parse_args():
     post_group.add_argument('--verbose', action='store_true',
                             help='Output the JSON in a verbose format including file position for each clone location'
                                  '(default: false)')
+    post_group.add_argument('--compress', '-z', dest='compress', action='store_true',
+                            help='Compress the JSON output')           
     scan_parser.set_defaults(launch=run_scan)
     stat_parser = subparsers.add_parser('stats')
     stat_parser.add_argument('input', type=argparse.FileType('r'), help='JSON file emitted by the scan process')
