@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import os
+import shlex
 import subprocess
 
 from typing import List
@@ -61,19 +62,26 @@ def run_findmaxrep(args, intermediary):
 
 
 def run_findrepset(args, intermediary):
-    run([
+    base_cmd = [
         "{}/bin/findrepset".format(args.prefix),
         "-nm",  # find maximal repeats, not supermaximal ones
         "-ml", str(args.minrepeat),
-        "-o", "{}.output.txt".format(intermediary),
-        "{}.concat".format(intermediary)
-    ])
+    ]
+    concat_in = "{}.concat".format(intermediary)
+    if args.compress:
+        base_cmd.append(concat_in)
+        print("Running '" + " ".join(base_cmd) + "'...")
+        cmd = " ".join([shlex.quote(c) for c in base_cmd]) + " | gzip > " + shlex.quote(
+            "{}.output.txt.gz".format(intermediary))
+        subprocess.run(cmd, shell=True, check=True)
+    else:
+        run([*base_cmd, "-o", "{}.output.txt".format(intermediary), concat_in])
 
 
 def run_postprocessor(args, intermediary, output):
     post_args = [
         "{}/bin/postprocessor".format(args.prefix),
-        "{}.output.txt".format(intermediary),
+        ("{}.output.txt.gz" if args.compress else "{}.output.txt").format(intermediary),
         "{}.charmap".format(intermediary),
         output.name,
         "-m", str(args.minrepeat)
@@ -89,6 +97,7 @@ def run_postprocessor(args, intermediary, output):
     if args.compress:
         post_args.append('--compress')
     run(post_args)
+
 
 def run_scan(args):
     if not os.path.exists(args.src):
@@ -162,6 +171,8 @@ def parse_args():
                              help='Output directory for intermediary files (default: regular output directory)')
     scan_parser.add_argument('--linemap', action='store_true',
                              help='Export mappings from character position to line number')
+    scan_parser.add_argument('--compress', '-z', dest='compress', action='store_true',
+                             help='Compress the JSON output and large intermediary files')
     pre_group = scan_parser.add_argument_group('Pre-processing', 'Options for the "pre" step. '
                                                                  'Space-producing transformations are applied before '
                                                                  'space normalization.')
@@ -185,8 +196,6 @@ def parse_args():
     post_group.add_argument('--verbose', action='store_true',
                             help='Output the JSON in a verbose format including file position for each clone location'
                                  '(default: false)')
-    post_group.add_argument('--compress', '-z', dest='compress', action='store_true',
-                            help='Compress the JSON output')           
     scan_parser.set_defaults(launch=run_scan)
     stat_parser = subparsers.add_parser('stats')
     stat_parser.add_argument('input', type=argparse.FileType('r'), help='JSON file emitted by the scan process')

@@ -224,10 +224,11 @@ int main(int argc, char **argv) {
 
 void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_set<std::string> &splits,
             const ProcessingOptions &opts, const std::optional<std::map<unsigned long, unsigned long>> &linemap) {
-    std::ifstream bwt(opts.bwt_file);
+    std::unique_ptr<std::istream> bwtp(opts.compress ? (std::istream*) new zstr::ifstream(opts.bwt_file) : new std::ifstream(opts.bwt_file));
+    std::istream &bwt_in = *bwtp;
 
-    if (!bwt) {
-        std::cerr << "bwt output file open fails. exit.\n";
+    if (!bwt_in) {
+        std::cerr << "bwt input file open fails. exit.\n";
         exit(1);
     }
 
@@ -281,9 +282,9 @@ void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_
     Repeats late;
 
     try {
-        while (bwt) {
+        while (bwt_in) {
             Repeats repeats;
-            read(bwt, repeats, charmap, splits, opts);
+            read(bwt_in, repeats, charmap, splits, opts);
 
             for (const auto &repeat : repeats) {
                 // if the subtext can come from a split, we wait until the end to merge every position
@@ -302,7 +303,7 @@ void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_
             }
         }
     } catch (std::runtime_error &e) {
-        std::cerr << "Failed to read repeat entry at position " << bwt.tellg() << " in " << opts.bwt_file << ": "
+        std::cerr << "Failed to read repeat entry at position " << bwt_in.tellg() << " in " << opts.bwt_file << ": "
                   << e.what();
     }
 
@@ -321,10 +322,9 @@ void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_
         }
     }
 
-    bwt.close();
-
     json_out << "\n\t]\n}";
 
+    // bwt_in auto close
     // json_out auto close
 }
 
