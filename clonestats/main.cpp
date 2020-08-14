@@ -5,14 +5,23 @@
 #include "CloneParser.h"
 #include "../util/ArgParser.h"
 
-void parse_json(CloneListener &listener, std::ifstream &json_in, std::optional<std::string> out_file) {
+struct ProcessingOptions {
+    std::optional<std::string> out_file;
+    bool verbose_input;
+    std::optional<std::string> connectivity;
+    bool compute_distance;
+    bool compute_count;
+    bool bigcloneeval;
+};
+
+void parse_json(CloneListener &listener, std::ifstream &json_in, ProcessingOptions opts) {
     JsonStreamingParser parser;
     parser.setListener(&listener);
 
     std::ofstream out;
 
-    if (out_file) {
-        out = std::ofstream(*out_file);
+    if (opts.out_file) {
+        out = std::ofstream(*opts.out_file);
 
         if (!out) {
             std::cerr << "output file open fails. exit.\n";
@@ -22,10 +31,15 @@ void parse_json(CloneListener &listener, std::ifstream &json_in, std::optional<s
         listener.output(&out);
     }
 
+    if (opts.verbose_input) parser.parse('[');
+
     char c;
     while (json_in.get(c)) {
+        if (opts.verbose_input && c == '\n') parser.parse(',');
         parser.parse(c);
     }
+
+    if (opts.verbose_input) parser.parse(']');
 
     listener.end();
 }
@@ -41,11 +55,15 @@ int main(int argc, char **argv) {
     ArgParser args(argv, argv + argc);
 
     std::string json_file = argv[1];
-    std::optional<std::string> out_file = args.getCmdArg("-o");
-    std::optional<std::string> connectivity = args.getCmdArg("--connectivity");
-    bool compute_distance = args.cmdOptionExists("--distance");
-    bool compute_count = args.cmdOptionExists("--count");
-    bool bigcloneeval = args.cmdOptionExists("--bigcloneeval");
+
+    ProcessingOptions opts {
+        args.getCmdArg("-o"),
+        args.cmdOptionExists("--verbose-input"),
+        args.getCmdArg("--connectivity"),
+        args.cmdOptionExists("--distance"),
+        args.cmdOptionExists("--count"),
+        args.cmdOptionExists("--bigcloneeval")
+    };
 
     std::ifstream json_in(json_file);
 
@@ -54,19 +72,19 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    if (bigcloneeval) {
+    if (opts.bigcloneeval) {
         TestCsvGenerator listener;
-        parse_json(listener, json_in, out_file);
-    } else if (compute_distance) {
-        DistanceMatrixGenerator listener(connectivity);
-        parse_json(listener, json_in, out_file);
-    } else if (compute_count) {
-        CountMatrixGenerator listener(connectivity);
-        parse_json(listener, json_in, out_file);
+        parse_json(listener, json_in, opts);
+    } else if (opts.compute_distance) {
+        DistanceMatrixGenerator listener(opts.connectivity);
+        parse_json(listener, json_in, opts);
+    } else if (opts.compute_count) {
+        CountMatrixGenerator listener(opts.connectivity);
+        parse_json(listener, json_in, opts);
     } else {
         // Print number of occurrences of repeated subsequences by file extension
         OccurrenceCsvGenerator listener;
-        parse_json(listener, json_in, out_file);
+        parse_json(listener, json_in, opts);
     }
 
     json_in.close();
