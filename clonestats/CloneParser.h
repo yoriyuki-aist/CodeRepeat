@@ -71,17 +71,19 @@ private:
     State state{start};
     RepeatData current_repeat{};
     std::string last_key{};
-
-protected:
     // position in the concatenated file -> extension+id of the source file
     // will be empty if the "file_starts" object is not parsed before the "repeats"!
     std::map<unsigned long, FileData> files{};
     // position in the concatenated file -> line number in the source file
     // may be empty if the "line_starts" object does not exist
     std::optional<std::map<unsigned long, unsigned long>> lines{};
+
+protected:
     std::ostream *out {&std::cout};
 
-    virtual void postFileStarts() {};
+    FileData &file(unsigned long pos) {return (--files.upper_bound(pos))->second;}
+    unsigned long &line(unsigned long pos) {if (!lines) throw std::runtime_error("Missing line mappings"); return (--lines->upper_bound(pos))->second;}
+    virtual void postFileStarts(unsigned long file_count) {};
     virtual void onRepeat(const RepeatData &repeat) {};
 
 public:
@@ -109,7 +111,9 @@ public:
         this->out = ostream;
     }
 
-    virtual void end() = 0;
+    void end() { end(files); }
+
+    virtual void end(std::map<unsigned long, FileData> &files) = 0;
 };
 
 class DistanceMatrixGenerator : public CloneListener {
@@ -119,12 +123,12 @@ private:
     std::optional<std::string> connectivity;
 public:
     explicit DistanceMatrixGenerator(std::optional<std::string> &connectivity) : CloneListener(), connectivity(connectivity) {}
-    void end() override;
+    void end(std::map<unsigned long, FileData> &files) override;
 
 protected:
     void onRepeat(const RepeatData &repeat) override;
 
-    void postFileStarts() override;
+    void postFileStarts(unsigned long file_count) override;
 };
 
 class CountMatrixGenerator : public CloneListener {
@@ -135,12 +139,12 @@ private:
 public:
     explicit CountMatrixGenerator(std::optional<std::string> &connectivity) : CloneListener(),
                                                                      connectivity(connectivity) {}
-    void end() override;
+    void end(std::map<unsigned long, FileData> &files) override;
 
 protected:
     void onRepeat(const RepeatData &repeat) override;
 
-    void postFileStarts() override;
+    void postFileStarts(unsigned long file_count) override;
 };
 
 class OccurrenceCsvGenerator : public CloneListener {
@@ -150,19 +154,17 @@ private:
 public:
     OccurrenceCsvGenerator() : CloneListener() {}
 
-    void end() override;
+    void end(std::map<unsigned long, FileData> &files) override;
 
 protected:
     void onRepeat(const RepeatData &repeat) override;
 };
 
 class TestCsvGenerator : public CloneListener {
-private:
-    std::vector<std::pair<unsigned long, unsigned long>> clone_pairs {};
 public:
     TestCsvGenerator() : CloneListener() {}
 
-    void end() override {}
+    void end(std::map<unsigned long, FileData> &files) override {}
 
 protected:
     void onRepeat(const RepeatData &repeat) override;

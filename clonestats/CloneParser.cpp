@@ -38,7 +38,7 @@ void CloneListener::startObject() {
 void CloneListener::endObject() {
     if (state == file_starts) {
         state = root;
-        postFileStarts();
+        postFileStarts(files.size());
     } else if (state == line_starts) {
         state = root;
     } else if (state == repeat) {
@@ -110,7 +110,7 @@ void CloneListener::endDocument() {
     // NO-OP
 }
 
-void DistanceMatrixGenerator::end() {
+void DistanceMatrixGenerator::end(std::map<unsigned long, FileData> &files) {
     std::optional<std::ofstream> connect;
 
     if (connectivity) {
@@ -174,8 +174,8 @@ void DistanceMatrixGenerator::onRepeat(const RepeatData &repeat) {
     }
 }
 
-void DistanceMatrixGenerator::postFileStarts() {
-    similarity_matrix = SimpleMatrix<unsigned long>(files.size());
+void DistanceMatrixGenerator::postFileStarts(unsigned long file_count) {
+    similarity_matrix = SimpleMatrix<unsigned long>(file_count);
 }
 
 void CountMatrixGenerator::onRepeat(const RepeatData &repeat) {
@@ -187,7 +187,7 @@ void CountMatrixGenerator::onRepeat(const RepeatData &repeat) {
     }
 }
 
-void CountMatrixGenerator::end() {
+void CountMatrixGenerator::end(std::map<unsigned long, FileData> &files) {
     const auto &concat_end = files.crbegin();  // special last pair
     if (!concat_end->second.name.empty()) throw std::runtime_error("Last file mapping should use the empty string as name");
 
@@ -221,11 +221,11 @@ void CountMatrixGenerator::end() {
     }
 }
 
-void CountMatrixGenerator::postFileStarts() {
-    count_matrix = SimpleMatrix<unsigned long>(files.size());
+void CountMatrixGenerator::postFileStarts(unsigned long file_count) {
+    count_matrix = SimpleMatrix<unsigned long>(file_count);
 }
 
-void OccurrenceCsvGenerator::end() {
+void OccurrenceCsvGenerator::end(std::map<unsigned long, FileData> &files) {
     *out << "File extension,Size,Occurrence(s),unique sequence(s)\n";
     for (const auto &ext_entry : occurrences) {
         for (const auto &size_entry : ext_entry.second) {
@@ -257,20 +257,18 @@ void OccurrenceCsvGenerator::onRepeat(const RepeatData &repeat) {
 }
 
 void TestCsvGenerator::onRepeat(const RepeatData &repeat) {
-    if (!lines) throw std::runtime_error("Missing line mappings");
-
     unsigned long size = repeat.positions.size();
     for (int i = 0; i < size-1; i++) {
         for (int j = i+1; j < size; j++) {
             const auto &pos = repeat.positions[i];
-            FileData &source = (--files.upper_bound(pos))->second;
+            FileData &source = this->file(pos);
             fs::path p1(source.name);
-            unsigned long line = (--lines->upper_bound(pos))->second;
+            unsigned long line = this->line(pos);
             *out << p1.parent_path().filename() << "," << p1.filename() << "," << line << ",";
             const auto &pos2 = repeat.positions[j];
-            FileData &source2 = (--files.upper_bound(pos2))->second;
+            FileData &source2 = this->file(pos2);
             fs::path p2(source2.name);
-            unsigned long line2 = (--lines->upper_bound(pos2))->second;
+            unsigned long line2 = this->line(pos2);
             *out << p2.parent_path().filename() << "," << p2.filename() << "," << line2 << "\n";
         }
     }
