@@ -103,7 +103,7 @@ def run_scan(args):
     if not os.path.exists(args.src):
         raise argparse.ArgumentError("{} does not exist".format(args.src))
 
-    output = args.output or open(args.src + ".json", "wb")
+    output = args.output or open(args.src + ".json" + (".gz" if args.compress else ""), "wb")
 
     if args.intermediaries:
         intermediary = "{}/{}".format(args.intermediaries, os.path.basename(args.src))
