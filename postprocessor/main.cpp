@@ -340,16 +340,16 @@ emit_verbose_repeat(std::ostream &json_out, const std::string& subtext, const st
     json_out << ",\"locations\": [";
     bool print_separator = false;
 
-    for (unsigned long pos : positions) {
+    for (unsigned long start_pos : positions) {
         if (print_separator) json_out << ",";
 
-        std::string filename = (--charmap.upper_bound(pos))->second;
-        auto start_line = *--linemap->upper_bound(pos);
+        std::string filename = (--charmap.upper_bound(start_pos))->second;
+        auto start_line = (--linemap->upper_bound(start_pos))->second;
         json_out << "{\"path\":\t\"" << filename << "\",\t";
-        json_out << "\"start_line\": " << start_line.second << ",\t";
-        unsigned long end_pos = pos + subtext.length();
-        auto end_line = *--linemap->upper_bound(end_pos);
-        json_out << "\"end_line\":\t" << end_line.second << "}";
+        json_out << "\"start_line\": " << start_line << ",\t";
+        unsigned long end_pos = start_pos + subtext.length() - 1; // if length == 1, end_pos == start_pos
+        auto end_line = (--linemap->upper_bound(end_pos))->second;
+        json_out << "\"end_line\":\t" << end_line << "}";
         print_separator = true;
     }
 
