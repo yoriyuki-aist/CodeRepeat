@@ -70,9 +70,9 @@ def run_findrepset(args, intermediary):
     concat_in = "{}.concat".format(intermediary)
     if args.compress:
         base_cmd.append(concat_in)
-        print("Running '" + " ".join(base_cmd) + "'...")
-        cmd = " ".join([shlex.quote(c) for c in base_cmd]) + " | gzip > " + shlex.quote(
+        cmd = " ".join([shlex.quote(c) for c in base_cmd]) + " -o /dev/fd/1 | gzip -c > " + shlex.quote(
             "{}.output.txt.gz".format(intermediary))
+        print("Running '" + cmd + "'...")
         subprocess.run(cmd, shell=True, check=True)
     else:
         run([*base_cmd, "-o", "{}.output.txt".format(intermediary), concat_in])
