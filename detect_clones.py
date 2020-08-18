@@ -128,10 +128,16 @@ def run_scan(args):
 
 
 def run_stats(args):
-    stats_args = [
-        "{}/bin/clonestats".format(args.prefix),
-        args.input.name
-    ]
+    if args.compress:
+        stats_args = [
+            "{}/bin/clonestats".format(args.prefix),
+            "/dev/fd/0"
+        ]
+    else:
+        stats_args = [
+            "{}/bin/clonestats".format(args.prefix),
+            args.input.name
+        ]
 
     if args.output:
         stats_args.extend(['-o', args.output.name])
@@ -148,13 +154,20 @@ def run_stats(args):
     if args.connectivity:
         stats_args.extend(['--connectivity', args.connectivity.name])
 
-    run(stats_args)
+    if args.compress:
+        cmd = "gunzip -c {} | ".format(shlex.quote(args.input.name)) + " ".join([shlex.quote(c) for c in stats_args])
+        print("Running '" + cmd + "'...")
+        subprocess.run(cmd, shell=True, check=True)       
+    else:
+        run(stats_args)
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Detects clones in a set of files")
     parser.add_argument('--prefix', help='Location of the cmake build directory for the project',
                         default=os.path.dirname(__file__))
+    parser.add_argument('--compress', '-z', dest='compress', action='store_true',
+    help='Use compressed intermidiate and json files')
     subparsers = parser.add_subparsers(dest='cmd', metavar='{scan,stats}', required=True)
     scan_parser = subparsers.add_parser('scan',
                                         help='Scan a source repository for clones and output a JSON description')
