@@ -57,9 +57,11 @@ static std::string strerror()
     }
 #else
 // GNU-specific strerror_r()
-    auto p = strerror_r(errno, &buff[0], buff.size());
-    std::string tmp(p, std::strlen(p));
-    std::swap(buff, tmp);
+    // Looks like a bug
+    strerror_r(errno, &buff[0], buff.size());
+    // auto p = strerror_r(errno, &buff[0], buff.size());
+    // std::string tmp(p, std::strlen(p));
+    // std::swap(buff, tmp);
 #endif
     buff.resize(buff.find('\0'));
     return buff;
