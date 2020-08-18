@@ -167,7 +167,7 @@ def parse_args():
     parser.add_argument('--prefix', help='Location of the cmake build directory for the project',
                         default=os.path.dirname(__file__))
     parser.add_argument('--compress', '-z', dest='compress', action='store_true',
-    help='Use compressed intermidiate and json files')
+    help='Use compressed intermediate and json files')
     subparsers = parser.add_subparsers(dest='cmd', metavar='{scan,stats}', required=True)
     scan_parser = subparsers.add_parser('scan',
                                         help='Scan a source repository for clones and output a JSON description')
