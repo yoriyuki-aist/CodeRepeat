@@ -43,6 +43,8 @@ def run_preprocessor(args, intermediary):
 
 
 def run_findmaxrep(args, intermediary):
+    if args.supermax:
+        raise Exception('FindMaxRep does not support finding supermaximal repeats. Use the default finder instead.')
     run([
         "{}/bin/bwt".format(args.prefix),
         "{}.concat".format(intermediary),
@@ -64,9 +66,10 @@ def run_findmaxrep(args, intermediary):
 def run_findrepset(args, intermediary):
     base_cmd = [
         "{}/bin/findrepset".format(args.prefix),
-        "-nm",  # find maximal repeats, not supermaximal ones
         "-ml", str(args.minrepeat),
     ]
+    if not args.supermax:
+        base_cmd.append("-nm"),  # find maximal repeats, not supermaximal ones
     concat_in = "{}.concat".format(intermediary)
     if args.compress:
         base_cmd.append(concat_in)
@@ -200,6 +203,7 @@ def parse_args():
     find_group = scan_parser.add_argument_group('Repeat Finding', 'Options for the "findmaxrep" step.')
     find_group.add_argument('--alt-finder', dest='alt_finder', action='store_true',
                             help='Use the alternative (slower) repeat finder (default: false)')
+    find_group.add_argument('--supermax', action='store_true', help='Use supermaximal repeats')
     post_group = scan_parser.add_argument_group('Post-processing', 'Options for the "post" step')
     post_group.add_argument('--skip-blank', dest='skip_blank', action='store_true',
                             help='Skip repeated sequences that only contain whitespace and control code'
