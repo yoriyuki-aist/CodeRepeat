@@ -79,7 +79,7 @@ private:
     std::optional<std::map<unsigned long, unsigned long>> lines{};
 
 protected:
-    std::ostream *out {&std::cout};
+    std::ostream &out;
 
     FileData &file(unsigned long pos) {return (--files.upper_bound(pos))->second;}
     unsigned long &line(unsigned long pos) {if (!lines) throw std::runtime_error("Missing line mappings"); return (--lines->upper_bound(pos))->second;}
@@ -87,7 +87,7 @@ protected:
     virtual void onRepeat(const RepeatData &repeat) {};
 
 public:
-    CloneListener() = default;
+    explicit CloneListener(std::ostream &out): out{out} {};
 
     void whitespace(char c) override;
 
@@ -107,10 +107,6 @@ public:
 
     void startObject() override;
 
-    void output(std::ostream *ostream) {
-        this->out = ostream;
-    }
-
     void end() { end(files); }
 
     virtual void end(std::map<unsigned long, FileData> &files) = 0;
@@ -122,7 +118,7 @@ private:
     SimpleMatrix<unsigned long> similarity_matrix{0};
     std::optional<std::string> connectivity;
 public:
-    explicit DistanceMatrixGenerator(std::optional<std::string> &connectivity) : CloneListener(), connectivity(connectivity) {}
+    explicit DistanceMatrixGenerator(std::ostream &out, std::optional<std::string> &connectivity) : CloneListener(out), connectivity(connectivity) {}
     void end(std::map<unsigned long, FileData> &files) override;
 
 protected:
@@ -137,7 +133,7 @@ private:
     // [file id, file id] -> number of clones
     SimpleMatrix<unsigned long> count_matrix{0};
 public:
-    explicit CountMatrixGenerator(std::optional<std::string> &connectivity) : CloneListener(),
+    explicit CountMatrixGenerator(std::ostream &out, std::optional<std::string> &connectivity) : CloneListener(out),
                                                                      connectivity(connectivity) {}
     void end(std::map<unsigned long, FileData> &files) override;
 
@@ -152,7 +148,7 @@ private:
     // extension -> repeat size -> number of occurrences
     std::unordered_map<std::string, std::map<unsigned long, OccurrenceCounter>> occurrences;
 public:
-    OccurrenceCsvGenerator() : CloneListener() {}
+    explicit OccurrenceCsvGenerator(std::ostream &out) : CloneListener(out) {}
 
     void end(std::map<unsigned long, FileData> &files) override;
 
@@ -162,7 +158,7 @@ protected:
 
 class TestCsvGenerator : public CloneListener {
 public:
-    TestCsvGenerator() : CloneListener() {}
+    explicit TestCsvGenerator(std::ostream &out) : CloneListener(out) {}
 
     void end(std::map<unsigned long, FileData> &files) override {}
 

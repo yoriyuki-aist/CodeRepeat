@@ -89,7 +89,7 @@ void CloneListener::value(std::string value) {
 void CloneListener::startArray() {
     if (state == root && last_key == "repeats") {
         state = repeats;
-    } else if (state == repeat && last_key == "positions") {
+    } else if (state == repeat && last_key == "locations") {
         state = positions;
     } else {
         throw std::runtime_error("Unexpected array start after key " + last_key + " in state " + states[state]);
@@ -131,34 +131,34 @@ void DistanceMatrixGenerator::end(std::map<unsigned long, FileData> &files) {
     for (const auto &f : files) {
         unsigned int file_id = f.second.id;
         if (file_id > 0) {
-            *out << ",";
+            out << ",";
             file_lengths[file_id - 1] = f.first - last_file_start;
         }
-        *out << f.second.name;
+        out << f.second.name;
         last_file_start = f.first;
     }
 
-    *out << "\n";
+    out << "\n";
 
     for (int i = 0; i < similarity_matrix.size() - 1; i++) {    // discard the dummy
         for (int j = 0; j < similarity_matrix.size() - 1; j++) {
             if (j > 0) {   // no separator for the first value of the line
-                *out << ",";
+                out << ",";
                 if (connect) *connect << ",";
             }
             unsigned long val = similarity_matrix.at(i, j) + similarity_matrix.at(j, i);
             if (i == j) {
-                *out << 0;
+                out << 0;
                 if (connect) *connect << 1;
             } else if (val == 0) {
-                *out << 1e2;
+                out << 1e2;
                 if (connect) *connect << 0;
             } else {
-                *out << log((double) (file_lengths[i] + file_lengths[j])) - log((double) val);
+                out << log((double) (file_lengths[i] + file_lengths[j])) - log((double) val);
                 if (connect) *connect << 1;
             }
         }
-        *out << "\n";
+        out << "\n";
         if (connect) *connect << "\n";
     }
 }
@@ -198,26 +198,26 @@ void CountMatrixGenerator::end(std::map<unsigned long, FileData> &files) {
     for (const auto &f : files) {
         unsigned int file_id = f.second.id;
         if (file_id < file_count - 1) {
-            *out << "File name,";
+            out << "File name,";
         }
         if (file_id > 0) {
             file_lengths[file_id - 1] = f.first - last_file_start;
         }
-        *out << f.second.name;
+        out << f.second.name;
         last_file_start = f.first;
     }
 
-    *out << "\n";
+    out << "\n";
     auto it = files.begin();
 
     for (int i = 0; i < count_matrix.size() - 1; i++) {    // discard the dummy
-        *out << it->second.name;
+        out << it->second.name;
         ++it;
         for (int j = 0; j < count_matrix.size() - 1; j++) {
-            *out << ",";
-            *out << count_matrix.at(i, j) + count_matrix.at(j, i);
+            out << ",";
+            out << count_matrix.at(i, j) + count_matrix.at(j, i);
         }
-        *out << "\n";
+        out << "\n";
     }
 }
 
@@ -226,13 +226,13 @@ void CountMatrixGenerator::postFileStarts(unsigned long file_count) {
 }
 
 void OccurrenceCsvGenerator::end(std::map<unsigned long, FileData> &files) {
-    *out << "File extension,Size,Occurrence(s),unique sequence(s)\n";
+    out << "File extension,Size,Occurrence(s),unique sequence(s)\n";
     for (const auto &ext_entry : occurrences) {
         for (const auto &size_entry : ext_entry.second) {
-            *out << (ext_entry.first.empty() ? "(none)" : ext_entry.first) << ',';
-            *out << size_entry.first << "," << size_entry.second.total << ",";
-            *out << size_entry.second.unique;
-            *out << "\n";
+            out << (ext_entry.first.empty() ? "(none)" : ext_entry.first) << ',';
+            out << size_entry.first << "," << size_entry.second.total << ",";
+            out << size_entry.second.unique;
+            out << "\n";
         }
     }
 }
@@ -265,13 +265,13 @@ void TestCsvGenerator::onRepeat(const RepeatData &repeat) {
             fs::path p1(source.name);
             unsigned long line = this->line(pos);
             unsigned long end_line = this->line(pos + repeat.text.size() - 1);
-            *out << p1.parent_path().filename() << "," << p1.filename() << "," << line << "," << end_line << ",";
+            out << p1.parent_path().filename() << "," << p1.filename() << "," << line << "," << end_line << ",";
             // second position only lists the end line. we know that the file is the same, so no need to compute the start
             const auto &pos2 = repeat.positions[j] + repeat.text.length() - 1;
             FileData &source2 = this->file(pos2);
             fs::path p2(source2.name);
             unsigned long line2 = this->line(pos2);
-            *out << p2.parent_path().filename() << "," << p2.filename() << "," << line2 << "\n";
+            out << p2.parent_path().filename() << "," << p2.filename() << "," << line2 << "\n";
         }
     }
 }

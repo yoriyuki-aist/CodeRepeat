@@ -1,35 +1,23 @@
 #include <iostream>
 #include <algorithm>
 #include <json/JsonStreamingParser.h>
-#include <ctgmath>
+#include <memory>
 #include "CloneParser.h"
+#include "VerboseCloneParser.h"
 #include "../util/ArgParser.h"
 
 struct ProcessingOptions {
     std::optional<std::string> out_file;
-    bool verbose_input;
+    bool verbose_input{};
     std::optional<std::string> connectivity;
-    bool compute_distance;
-    bool compute_count;
-    bool bigcloneeval;
+    bool compute_distance{};
+    bool compute_count{};
+    bool bigcloneeval{};
 };
 
-void parse_json(CloneListener &listener, std::ifstream &json_in, ProcessingOptions opts) {
+void parse_json(JsonListener &listener, std::ifstream &json_in, const ProcessingOptions &opts) {
     JsonStreamingParser parser;
     parser.setListener(&listener);
-
-    std::ofstream out;
-
-    if (opts.out_file) {
-        out = std::ofstream(*opts.out_file);
-
-        if (!out) {
-            std::cerr << "output file open fails. exit.\n";
-            exit(1);
-        }
-
-        listener.output(&out);
-    }
 
     if (opts.verbose_input) parser.parse('[');
 
@@ -40,8 +28,6 @@ void parse_json(CloneListener &listener, std::ifstream &json_in, ProcessingOptio
     }
 
     if (opts.verbose_input) parser.parse(']');
-
-    listener.end();
 }
 
 namespace fs = std::filesystem;
@@ -56,13 +42,13 @@ int main(int argc, char **argv) {
 
     std::string json_file = argv[1];
 
-    ProcessingOptions opts {
-        args.getCmdArg("-o"),
-        args.cmdOptionExists("--verbose-input"),
-        args.getCmdArg("--connectivity"),
-        args.cmdOptionExists("--distance"),
-        args.cmdOptionExists("--count"),
-        args.cmdOptionExists("--bigcloneeval")
+    ProcessingOptions opts{
+            args.getCmdArg("-o"),
+            args.cmdOptionExists("--verbose-input"),
+            args.getCmdArg("--connectivity"),
+            args.cmdOptionExists("--distance"),
+            args.cmdOptionExists("--count"),
+            args.cmdOptionExists("--bigcloneeval")
     };
 
     std::ifstream json_in(json_file);
@@ -72,19 +58,41 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    if (opts.bigcloneeval) {
-        TestCsvGenerator listener;
-        parse_json(listener, json_in, opts);
-    } else if (opts.compute_distance) {
-        DistanceMatrixGenerator listener(opts.connectivity);
-        parse_json(listener, json_in, opts);
-    } else if (opts.compute_count) {
-        CountMatrixGenerator listener(opts.connectivity);
-        parse_json(listener, json_in, opts);
+    std::ofstream fout;
+    std::ostream *out = &std::cout;
+
+    if (opts.out_file) {
+        fout = std::ofstream(*opts.out_file);
+        out = &fout;
+
+        if (!fout) {
+            std::cerr << "output file open fails. exit.\n";
+            exit(1);
+        }
+
+    }
+
+    if (opts.verbose_input) {
+        if (opts.bigcloneeval) {
+            VerboseParser::TestCsvGenerator listener(*out);
+            parse_json(listener, json_in, opts);
+        } else {
+            throw std::runtime_error("Verbose format is only supported for BigCloneEval mode");
+        }
     } else {
-        // Print number of occurrences of repeated subsequences by file extension
-        OccurrenceCsvGenerator listener;
-        parse_json(listener, json_in, opts);
+        std::unique_ptr<CloneListener> listener;
+        if (opts.bigcloneeval) {
+            listener = std::make_unique<TestCsvGenerator>(*out);
+        } else if (opts.compute_distance) {
+            listener = std::make_unique<DistanceMatrixGenerator>(*out, opts.connectivity);
+        } else if (opts.compute_count) {
+            listener = std::make_unique<CountMatrixGenerator>(*out, opts.connectivity);
+        } else {
+            // Print number of occurrences of repeated subsequences by file extension
+            listener = std::make_unique<OccurrenceCsvGenerator>(*out);
+        }
+        parse_json(*listener, json_in, opts);
+        listener->end();
     }
 
     json_in.close();
