@@ -264,8 +264,10 @@ void TestCsvGenerator::onRepeat(const RepeatData &repeat) {
             FileData &source = this->file(pos);
             fs::path p1(source.name);
             unsigned long line = this->line(pos);
-            *out << p1.parent_path().filename() << "," << p1.filename() << "," << line << ",";
-            const auto &pos2 = repeat.positions[j];
+            unsigned long end_line = this->line(pos + repeat.text.size() - 1);
+            *out << p1.parent_path().filename() << "," << p1.filename() << "," << line << "," << end_line << ",";
+            // second position only lists the end line. we know that the file is the same, so no need to compute the start
+            const auto &pos2 = repeat.positions[j] + repeat.text.length() - 1;
             FileData &source2 = this->file(pos2);
             fs::path p2(source2.name);
             unsigned long line2 = this->line(pos2);
