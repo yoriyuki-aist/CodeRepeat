@@ -169,7 +169,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Detects clones in a set of files")
     parser.add_argument('--prefix', help='Location of the cmake build directory for the project',
                         default=os.path.dirname(__file__))
-    parser.add_argument('--compress', '-z', dest='compress', action='store_true',
+    parser.add_argument('-z', '--compress', dest='compress', action='store_true',
     help='Use compressed intermediate and json files')
     subparsers = parser.add_subparsers(dest='cmd', metavar='{scan,stats}', required=True)
     scan_parser = subparsers.add_parser('scan',
@@ -187,8 +187,6 @@ def parse_args():
                              help='Output directory for intermediary files (default: regular output directory)')
     scan_parser.add_argument('--linemap', action='store_true',
                              help='Export mappings from character position to line number')
-    scan_parser.add_argument('--compress', '-z', dest='compress', action='store_true',
-                             help='Compress the JSON output and large intermediary files')
     pre_group = scan_parser.add_argument_group('Pre-processing', 'Options for the "pre" step. '
                                                                  'Space-producing transformations are applied before '
                                                                  'space normalization.')
