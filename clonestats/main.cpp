@@ -2,13 +2,11 @@
 #include <algorithm>
 #include <json/JsonStreamingParser.h>
 #include <memory>
-#include "CloneParser.h"
 #include "VerboseCloneParser.h"
 #include "../util/ArgParser.h"
 
 struct ProcessingOptions {
     std::optional<std::string> out_file;
-    bool verbose_input{};
     std::optional<std::string> connectivity;
     bool compute_distance{};
     bool compute_count{};
@@ -44,7 +42,6 @@ int main(int argc, char **argv) {
 
     ProcessingOptions opts{
             args.getCmdArg("-o"),
-            args.cmdOptionExists("--verbose-input"),
             args.getCmdArg("--connectivity"),
             args.cmdOptionExists("--distance"),
             args.cmdOptionExists("--count"),
@@ -72,27 +69,11 @@ int main(int argc, char **argv) {
 
     }
 
-    if (opts.verbose_input) {
-        if (opts.bigcloneeval) {
-            VerboseParser::TestCsvGenerator listener(*out);
-            parse_json(listener, json_in, opts);
-        } else {
-            throw std::runtime_error("Verbose format is only supported for BigCloneEval mode");
-        }
+    if (opts.bigcloneeval) {
+        VerboseParser::TestCsvGenerator listener(*out);
+        parse_json(listener, json_in, opts);
     } else {
-        std::unique_ptr<CloneListener> listener;
-        if (opts.bigcloneeval) {
-            listener = std::make_unique<TestCsvGenerator>(*out);
-        } else if (opts.compute_distance) {
-            listener = std::make_unique<DistanceMatrixGenerator>(*out, opts.connectivity);
-        } else if (opts.compute_count) {
-            listener = std::make_unique<CountMatrixGenerator>(*out, opts.connectivity);
-        } else {
-            // Print number of occurrences of repeated subsequences by file extension
-            listener = std::make_unique<OccurrenceCsvGenerator>(*out);
-        }
-        parse_json(*listener, json_in, opts);
-        listener->end();
+        throw std::runtime_error("Verbose format is only supported for BigCloneEval mode");
     }
 
     json_in.close();

@@ -7,5 +7,4 @@ include_directories(.)
 
 add_executable(clonestats
         main.cpp
-        CloneParser.cpp
         json/JsonStreamingParser.cpp)

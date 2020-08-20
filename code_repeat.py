@@ -86,17 +86,14 @@ def run_postprocessor(args, intermediary, output):
         "{}/bin/postprocessor".format(args.prefix),
         ("{}.output.txt.gz" if args.compress else "{}.output.txt").format(intermediary),
         "{}.charmap".format(intermediary),
+        "{}.linemap".format(intermediary),
         output.name,
         "-m", str(args.minrepeat)
     ]
-    if args.linemap:
-        post_args.extend(['--linemap', '{}.linemap'.format(intermediary)])
     if args.skip_blank:
         post_args.append('--skip-blank')
     if args.skip_null:
         post_args.append('--skip-null')
-    if args.verbose:
-        post_args.append('--verbose')
     if args.compress:
         post_args.append('--compress')
     run(post_args)
@@ -208,9 +205,6 @@ def parse_args():
                                  '(default: false)')
     post_group.add_argument('--skip-null', dest='skip_null', action='store_true',
                             help='Skip repeated sequences that only contain null (default: false)')
-    post_group.add_argument('--verbose', action='store_true',
-                            help='Output the JSON in a verbose format including file position for each clone location'
-                                 '(default: false)')
     scan_parser.set_defaults(launch=run_scan)
     stat_parser = subparsers.add_parser('stats')
     stat_parser.add_argument('input', type=argparse.FileType('r'), help='JSON file emitted by the scan process')
