@@ -2,7 +2,7 @@
 import argparse
 import json
 import sys
-import bisect
+sys.stdin.reconfigure(encoding="ascii", errors="surrogateescape")
 
 parser = argparse.ArgumentParser(description='Filter repeats')
 parser.add_argument('-l', '--length', dest='length', action='store_true',
@@ -13,7 +13,7 @@ parser.add_argument('-N', '--topN', type=int, metavar='N',
                     help='number of repeats to be find')
 parser.add_argument('-o', '--output', type=argparse.FileType('w', encoding="ascii", errors="surrogateescape"), default=sys.stdout,
                     help='output json file')
-parser.add_argument('json_file', type=argparse.FileType('r', encoding="ascii", errors="surrogateescape"), default=sys.stdin,
+parser.add_argument('-i', '--input', type=argparse.FileType('r', encoding="ascii", errors="surrogateescape"), default=sys.stdin,
                     help='input json file')
 
 args = parser.parse_args()
@@ -31,7 +31,7 @@ elif args.occ:
 else:
     sys.exit('impossible')
 
-for line in args.json_file:
+for line in args.input:
     ob = json.loads(line)
     v = len(ob[key])
     if v > current:
