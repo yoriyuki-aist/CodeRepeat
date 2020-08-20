@@ -312,11 +312,12 @@ void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_
     for (const auto &repeat : late) {
         // after split, some "repeated sequences" may actually have a single occurrence
         if (repeat.second.size() > 1) {
-            if (print_obj_separator) json_out << ",\n";
 
             if (opts.verbose) {
+                if (print_obj_separator) json_out << "\n";
                 emit_verbose_repeat(json_out, repeat.first, repeat.second, charmap, linemap);
             } else {
+                if (print_obj_separator) json_out << ",\n";
                 emit_repeat(json_out, repeat.first, repeat.second);
             }
 
