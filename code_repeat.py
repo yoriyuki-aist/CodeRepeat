@@ -25,12 +25,11 @@ def run_preprocessor(args, intermediary):
         "{}/bin/preprocessor".format(args.prefix),
         args.src,
         "{}.concat".format(intermediary),
-        "{}.charmap".format(intermediary)
+        "{}.charmap".format(intermediary),
+        "--linemap", "{}.linemap".format(intermediary)
     ]
     if args.extensions:
         pre_args.extend(['--extensions', *args.extensions])
-    if args.linemap:
-        pre_args.extend(['--linemap', '{}.linemap'.format(intermediary)])
     if args.nl:
         pre_args.append('-nl')
     if args.nl2s:
@@ -144,8 +143,6 @@ def parse_args():
                              help='Minimum size of the repeated sequences')
     parser.add_argument('-i', '--intermediaries',
                              help='Output directory for intermediary files (default: regular output directory)')
-    parser.add_argument('--linemap', action='store_true',
-                             help='Export mappings from character position to line number')
     pre_group = parser.add_argument_group('Pre-processing', 'Options for the "pre" step. '
                                                                  'Space-producing transformations are applied before '
                                                                  'space normalization.')
