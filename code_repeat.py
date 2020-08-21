@@ -127,64 +127,26 @@ def run_scan(args):
         run_postprocessor(args, intermediary, output)
 
 
-def run_stats(args):
-    if args.compress:
-        stats_args = [
-            "{}/bin/clonestats".format(args.prefix),
-            "/dev/fd/0"
-        ]
-    else:
-        stats_args = [
-            "{}/bin/clonestats".format(args.prefix),
-            args.input.name
-        ]
-
-    if args.output:
-        stats_args.extend(['-o', args.output.name])
-
-    if args.count:
-        stats_args.append('--count')
-
-    if args.distance:
-        stats_args.append('--distance')
-
-    if args.bigcloneeval:
-        stats_args.append('--bigcloneeval')
-
-    if args.connectivity:
-        stats_args.extend(['--connectivity', args.connectivity.name])
-
-    if args.compress:
-        cmd = "gunzip -c {} | ".format(shlex.quote(args.input.name)) + " ".join([shlex.quote(c) for c in stats_args])
-        print("Running '" + cmd + "'...")
-        subprocess.run(cmd, shell=True, check=True)       
-    else:
-        run(stats_args)
-
-
 def parse_args():
-    parser = argparse.ArgumentParser(description="Detects clones in a set of files")
+    parser = argparse.ArgumentParser(description="Scan a source repository for clones and output a JSON description")
     parser.add_argument('--prefix', help='Location of the cmake build directory for the project',
                         default=os.path.dirname(__file__))
     parser.add_argument('-z', '--compress', dest='compress', action='store_true',
-    help='Use compressed intermediate and json files')
-    subparsers = parser.add_subparsers(dest='cmd', metavar='{scan,stats}', required=True)
-    scan_parser = subparsers.add_parser('scan',
-                                        help='Scan a source repository for clones and output a JSON description')
-    scan_parser.add_argument('src', help='Input source directory to scan')
-    scan_parser.add_argument('-o', '--output', type=argparse.FileType('w'),
+                        help='Use compressed intermediate and json files')
+    parser.add_argument('src', help='Input source directory to scan')
+    parser.add_argument('-o', '--output', type=argparse.FileType('w'),
                              help='Output JSON file (default: <src>.json)')
-    scan_parser.add_argument('-e', '--extensions', nargs='*',
+    parser.add_argument('-e', '--extensions', nargs='*',
                              help='List of file extensions to process (default: process all files)')
-    scan_parser.add_argument('-r', '--run', nargs='+', default='all', choices=['pre', 'findrepeats', 'post', 'all'],
+    parser.add_argument('-r', '--run', nargs='+', default='all', choices=['pre', 'findrepeats', 'post', 'all'],
                              help='List of steps to run')
-    scan_parser.add_argument('-m', '--min-repeat-length', dest="minrepeat", type=unsigned_int, default=10,
+    parser.add_argument('-m', '--min-repeat-length', dest="minrepeat", type=unsigned_int, default=10,
                              help='Minimum size of the repeated sequences')
-    scan_parser.add_argument('-i', '--intermediaries',
+    parser.add_argument('-i', '--intermediaries',
                              help='Output directory for intermediary files (default: regular output directory)')
-    scan_parser.add_argument('--linemap', action='store_true',
+    parser.add_argument('--linemap', action='store_true',
                              help='Export mappings from character position to line number')
-    pre_group = scan_parser.add_argument_group('Pre-processing', 'Options for the "pre" step. '
+    pre_group = parser.add_argument_group('Pre-processing', 'Options for the "pre" step. '
                                                                  'Space-producing transformations are applied before '
                                                                  'space normalization.')
     pre_group.add_argument('--normalize-newlines', dest='nl', action='store_true',
@@ -195,33 +157,23 @@ def parse_args():
                            help='Replace sequences of whitespace with a single common space (default: false)')
     pre_group.add_argument('--normalize-trailing', dest='ntr', action='store_true',
                            help='Truncate sequences of whitespace preceding a line feed (default: false)')
-    find_group = scan_parser.add_argument_group('Repeat Finding', 'Options for the "findmaxrep" step.')
+    find_group = parser.add_argument_group('Repeat Finding', 'Options for the "findmaxrep" step.')
     find_group.add_argument('--alt-finder', dest='alt_finder', action='store_true',
                             help='Use the alternative (slower) repeat finder (default: false)')
     find_group.add_argument('--supermax', action='store_true', help='Use supermaximal repeats')
-    post_group = scan_parser.add_argument_group('Post-processing', 'Options for the "post" step')
+    post_group = parser.add_argument_group('Post-processing', 'Options for the "post" step')
     post_group.add_argument('--skip-blank', dest='skip_blank', action='store_true',
                             help='Skip repeated sequences that only contain whitespace and control code'
                                  '(default: false)')
     post_group.add_argument('--skip-null', dest='skip_null', action='store_true',
                             help='Skip repeated sequences that only contain null (default: false)')
-    scan_parser.set_defaults(launch=run_scan)
-    stat_parser = subparsers.add_parser('stats')
-    stat_parser.add_argument('input', type=argparse.FileType('r'), help='JSON file emitted by the scan process')
-    stat_parser.add_argument('-o', '--output', type=argparse.FileType('w'), help='Output CSV file (default: stdout)')
-    stat_parser.add_argument('--count', dest='count', action='store_true', help='Create a count matrix')
-    stat_parser.add_argument('--distance', action='store_true', help='Create a distance matrix')
-    stat_parser.add_argument('--connectivity', type=argparse.FileType('w'), help='Saves a connectivity matrix to '
-                                                                                 'the given file')
-    stat_parser.add_argument('--bigcloneeval', action='store_true', help='Export CSV file with the BigCloneEval format')
-    stat_parser.set_defaults(launch=run_stats)
+    parser.set_defaults(launch=run_scan)
 
     return parser.parse_args()
 
 
 def main():
-    args = parse_args()
-    args.launch(args)
+    run_scan(parse_args())
 
 
 if __name__ == "__main__":
