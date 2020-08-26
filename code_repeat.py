@@ -41,27 +41,6 @@ def run_preprocessor(args, intermediary):
     run(pre_args)
 
 
-def run_findmaxrep(args, intermediary):
-    if args.supermax:
-        raise Exception('FindMaxRep does not support finding supermaximal repeats. Use the default finder instead.')
-    run([
-        "{}/bin/bwt".format(args.prefix),
-        "{}.concat".format(intermediary),
-        "{}.bwt".format(intermediary)
-    ])
-    run([
-        "{}/bin/converter".format(args.prefix),
-        "{}.bwt".format(intermediary)
-    ])
-    run([
-        "{}/bin/findmaxrep".format(args.prefix),
-        "-i", "{}.bwtraw".format(intermediary),
-        "-P", "{}.bwtpos".format(intermediary),
-        "-o", "{}.output.txt".format(intermediary),
-        "-m", str(args.minrepeat)
-    ])
-
-
 def run_findrepset(args, intermediary):
     base_cmd = [
         "{}/bin/findrepset".format(args.prefix),
@@ -117,10 +96,7 @@ def run_scan(args):
         run_preprocessor(args, intermediary)
 
     if run_all or "findrepeats" in args.run:
-        if args.alt_finder:
-            run_findmaxrep(args, intermediary)
-        else:
-            run_findrepset(args, intermediary)
+        run_findrepset(args, intermediary)
 
     if run_all or "post" in args.run:
         run_postprocessor(args, intermediary, output)
@@ -155,8 +131,6 @@ def parse_args():
     pre_group.add_argument('--normalize-trailing', dest='ntr', action='store_true',
                            help='Truncate sequences of whitespace preceding a line feed (default: false)')
     find_group = parser.add_argument_group('Repeat Finding', 'Options for the "findmaxrep" step.')
-    find_group.add_argument('--alt-finder', dest='alt_finder', action='store_true',
-                            help='Use the alternative (slower) repeat finder (default: false)')
     find_group.add_argument('--supermax', action='store_true', help='Use supermaximal repeats')
     post_group = parser.add_argument_group('Post-processing', 'Options for the "post" step')
     post_group.add_argument('--skip-blank', dest='skip_blank', action='store_true',
