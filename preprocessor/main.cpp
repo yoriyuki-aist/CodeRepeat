@@ -36,6 +36,7 @@ int main(int argc, char **argv) {
     bool eof = args.cmdOptionExists("-eof");
     bool debug = args.cmdOptionExists("--debug");
     bool verbose = args.cmdOptionExists("-v");
+    bool symlink = args.cmdOptionExists("--symlinks");
     std::optional<std::vector<std::string>> file_extensions = args.getCmdArgs("--extensions");
     std::optional<std::string> linemap_file = args.getCmdArg("--linemap");
 
@@ -67,7 +68,10 @@ int main(int argc, char **argv) {
 
     std::cout << "Looking up files in " << argv[1] << "\n";
     std::set<fs::directory_entry> files;   // directory iteration order is unspecified, so we sort all the paths for consistent behaviour
-    for (const auto &entry : fs::recursive_directory_iterator(argv[1])) {
+    std::filesystem::directory_options options = symlink
+            ? fs::directory_options::follow_directory_symlink
+            : fs::directory_options::none;
+    for (const auto &entry : fs::recursive_directory_iterator(argv[1], options)) {
         if (entry.is_regular_file()) {
             const auto &path = entry.path();
             if (!file_extensions || std::any_of(file_extensions->begin(), file_extensions->end(),

@@ -38,6 +38,8 @@ def run_preprocessor(args, intermediary):
         pre_args.append('-ns')
     if args.ntr:
         pre_args.append('-ntr')
+    if args.symlinks:
+        pre_args.append('--symlinks')
     run(pre_args)
 
 
@@ -130,6 +132,8 @@ def parse_args():
                            help='Replace sequences of whitespace with a single common space (default: false)')
     pre_group.add_argument('--normalize-trailing', dest='ntr', action='store_true',
                            help='Truncate sequences of whitespace preceding a line feed (default: false)')
+    pre_group.add_argument('--symlinks', action='store_true',
+                           help='Follow symlinks when processing the source directory')
     find_group = parser.add_argument_group('Repeat Finding', 'Options for the "findmaxrep" step.')
     find_group.add_argument('--supermax', action='store_true', help='Use supermaximal repeats')
     post_group = parser.add_argument_group('Post-processing', 'Options for the "post" step')
