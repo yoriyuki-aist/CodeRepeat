@@ -236,6 +236,7 @@ int main(int argc, char **argv) {
     }
 
     charmap << out.tellp() << "\t\n";   // blank file name == end
+    fs::resize_file(out_file, out.tellp()); // pubseekoff operations can lead to ghost data
     out.close();
     charmap.close();
     if (linemap) linemap->close();
