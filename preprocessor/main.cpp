@@ -117,6 +117,7 @@ int main(int argc, char **argv) {
         unsigned long line_nb = 2;
         bool escape = false;
         enum comment comment = plain;
+        unsigned long comment_length = 0;
 
         for (int c = inbuf->sbumpc(); c != EOF; c = inbuf->sbumpc()) {
             // process data in buffer
@@ -133,58 +134,65 @@ int main(int argc, char **argv) {
                 }
             }
 
-            if (!escape) {
-                switch (c) {
-                    case '\\': {
-                        escape = true;
-                        break;
-                    }
-                    case '\n': {
-                        if (comment != multiline_comment) {
-                            comment = plain;
+            if (delcmts) {
+                if (!escape) {
+                    switch (c) {
+                        case '\\': {
+                            escape = true;
+                            break;
                         }
-                        break;
-                    }
-                    case '/': {
-                        if (comment == plain) {
-                            comment = comment_start;
-                        } else if (comment == comment_start) {
-                            comment = line_comment;
-                        } else if (comment == multiline_end) {
-                            comment = plain;
+                        case '\n': {
+                            if (comment != multiline_comment) {
+                                outbuf->pubseekoff(-comment_length, std::ios_base::cur);   // erase comment
+                                comment_length = 0;
+                                comment = plain;
+                            }
+                            break;
                         }
-                        break;
-                    }
-                    case '*': {
-                        if (comment == comment_start) {
-                            comment = multiline_comment;
-                        } else if (comment == multiline_comment) {
-                            comment = multiline_end;
+                        case '/': {
+                            if (comment == plain) {
+                                comment = comment_start;
+                            } else if (comment == comment_start) {
+                                comment = line_comment;
+                            } else if (comment == multiline_end) {
+                                outbuf->pubseekoff(-comment_length, std::ios_base::cur);   // erase comment
+                                comment_length = 0;
+                                comment = plain;
+                                continue;   // not writing the end of the comment
+                            }
+                            break;
                         }
-                        break;
-                    }
-                    case '"': {
-                        if (comment == plain) {
-                            comment = quote;
-                        } else if (comment == quote) {
-                            comment = plain;
+                        case '*': {
+                            if (comment == comment_start) {
+                                comment = multiline_comment;
+                            } else if (comment == multiline_comment) {
+                                comment = multiline_end;
+                            }
+                            break;
                         }
-                        break;
-                    }
-                    default: {
-                        if (comment == comment_start) {
-                            comment = plain;
-                        } else if (comment == multiline_end) {
-                            comment = multiline_comment;
+                        case '"': {
+                            if (comment == plain) {
+                                comment = quote;
+                            } else if (comment == quote) {
+                                comment = plain;
+                            }
+                            break;
+                        }
+                        default: {
+                            if (comment == comment_start) {
+                                comment = plain;
+                            } else if (comment == multiline_end) {
+                                comment = multiline_comment;
+                            }
                         }
                     }
+                } else if (c != '\r') { // line continuation support on windows
+                    escape = false;
                 }
-            } else if (c != '\r') { // line continuation support on windows
-                escape = false;
-            }
 
-            if (delcmts && (comment == line_comment || comment == multiline_comment)) {
-                continue;
+                if (comment != plain && comment != quote) {
+                    comment_length++;
+                }
             }
 
             if (newlines_to_spaces) {
