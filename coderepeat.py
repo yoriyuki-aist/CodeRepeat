@@ -40,6 +40,8 @@ def run_preprocessor(args, intermediary):
         pre_args.append('-ntr')
     if args.symlinks:
         pre_args.append('--symlinks')
+    if args.delcmts:
+        pre_args.append('--delete-comments');
     run(pre_args)
 
 
@@ -134,6 +136,8 @@ def parse_args():
                            help='Truncate sequences of whitespace preceding a line feed (default: false)')
     pre_group.add_argument('--symlinks', action='store_true',
                            help='Follow symlinks when processing the source directory')
+    pre_group.add_argument('--delete-comments', dest='delcmts', action='store_true',
+                           help='Remove c-style comments from the source code')
     find_group = parser.add_argument_group('Repeat Finding', 'Options for the "findmaxrep" step.')
     find_group.add_argument('--supermax', action='store_true', help='Use supermaximal repeats')
     post_group = parser.add_argument_group('Post-processing', 'Options for the "post" step')

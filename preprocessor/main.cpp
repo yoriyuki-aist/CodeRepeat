@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
     bool debug = args.cmdOptionExists("--debug");
     bool verbose = args.cmdOptionExists("-v");
     bool symlink = args.cmdOptionExists("--symlinks");
-    bool deletecmts = args.cmdOptionExists("--delete-comments");
+    bool delcmts = args.cmdOptionExists("--delete-comments");
     std::optional<std::vector<std::string>> file_extensions = args.getCmdArgs("--extensions");
     std::optional<std::string> linemap_file = args.getCmdArg("--linemap");
 
@@ -181,6 +181,10 @@ int main(int argc, char **argv) {
                 }
             } else if (c != '\r') { // line continuation support on windows
                 escape = false;
+            }
+
+            if (delcmts && (comment == line_comment || comment == multiline_comment)) {
+                continue;
             }
 
             if (newlines_to_spaces) {
