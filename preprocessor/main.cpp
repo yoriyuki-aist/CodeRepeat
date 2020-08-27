@@ -9,6 +9,10 @@ namespace fs = std::filesystem;
 static const char SPACE_CHAR = ' ';
 static const char EOF_CHAR = char(26);
 
+enum comment {
+    plain, comment_start, multiline_end, quote, line_comment, multiline_comment
+};
+
 bool endsWith(std::string const &fullString, std::string const &ending) {
     if (fullString.length() >= ending.length()) {
         return (0 == fullString.compare(fullString.length() - ending.length(), ending.length(), ending));
@@ -37,6 +41,7 @@ int main(int argc, char **argv) {
     bool debug = args.cmdOptionExists("--debug");
     bool verbose = args.cmdOptionExists("-v");
     bool symlink = args.cmdOptionExists("--symlinks");
+    bool deletecmts = args.cmdOptionExists("--delete-comments");
     std::optional<std::vector<std::string>> file_extensions = args.getCmdArgs("--extensions");
     std::optional<std::string> linemap_file = args.getCmdArg("--linemap");
 
@@ -110,6 +115,8 @@ int main(int argc, char **argv) {
         bool skip_next_space = false;
         unsigned long space_count = 0;
         unsigned long line_nb = 2;
+        bool escape = false;
+        enum comment comment = plain;
 
         for (int c = inbuf->sbumpc(); c != EOF; c = inbuf->sbumpc()) {
             // process data in buffer
@@ -124,6 +131,56 @@ int main(int argc, char **argv) {
                     *linemap << out.tellp() << "\t" << line_nb << "\n";
                     ++line_nb;
                 }
+            }
+
+            if (!escape) {
+                switch (c) {
+                    case '\\': {
+                        escape = true;
+                        break;
+                    }
+                    case '\n': {
+                        if (comment != multiline_comment) {
+                            comment = plain;
+                        }
+                        break;
+                    }
+                    case '/': {
+                        if (comment == plain) {
+                            comment = comment_start;
+                        } else if (comment == comment_start) {
+                            comment = line_comment;
+                        } else if (comment == multiline_end) {
+                            comment = plain;
+                        }
+                        break;
+                    }
+                    case '*': {
+                        if (comment == comment_start) {
+                            comment = multiline_comment;
+                        } else if (comment == multiline_comment) {
+                            comment = multiline_end;
+                        }
+                        break;
+                    }
+                    case '"': {
+                        if (comment == plain) {
+                            comment = quote;
+                        } else if (comment == quote) {
+                            comment = plain;
+                        }
+                        break;
+                    }
+                    default: {
+                        if (comment == comment_start) {
+                            comment = plain;
+                        } else if (comment == multiline_end) {
+                            comment = multiline_comment;
+                        }
+                    }
+                }
+            } else if (c != '\r') { // line continuation support on windows
+                escape = false;
             }
 
             if (newlines_to_spaces) {
