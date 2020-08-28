@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
         if (entry.is_regular_file()) {
             const auto &path = entry.path();
             if (!file_extensions || std::any_of(file_extensions->begin(), file_extensions->end(),
-                                                [path](auto ext) { return endsWith(path.string(), ext); })) {
+                                                [path](auto ext) { return endsWith(path.string(), "." + ext); })) {
                 if (verbose) {
                     std::cout << path << std::endl;
                 }
