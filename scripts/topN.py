@@ -37,7 +37,7 @@ for line in args.input:
     if v > current:
         ranking.append(ob)
         ranking = sorted(ranking, key=lambda ob: len(ob[key]), reverse=True)
-        ranking = ranking[:args.topN]
+        ranking = ranking[0:args.topN]
         curent = len(ranking[-1][key])
 
 for ob in ranking:
