@@ -34,7 +34,7 @@ void
 process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, unsigned long pos, int min_repeat_size,
                  std::unordered_set<std::string> &splits) {
     unsigned long repeat_end = pos + subtext.size();
-    auto it = charmap.upper_bound(pos-1);
+    auto it = --charmap.upper_bound(pos);
     bool split = false;
 
     do {
@@ -288,12 +288,12 @@ emit_verbose_repeat(std::ostream &json_out, const std::string &subtext, const st
     for (unsigned long start_pos : positions) {
         if (print_separator) json_out << ",";
 
-        std::string filename = (charmap.upper_bound(start_pos-1))->second;
-        auto start_line = (linemap.upper_bound(start_pos-1))->second;
+        std::string filename = (--charmap.upper_bound(start_pos))->second;
+        auto start_line = (--linemap.upper_bound(start_pos))->second;
         json_out << "{\"path\":\t\"" << filename << "\",\t";
         json_out << "\"start_line\": " << start_line << ",\t";
         unsigned long end_pos = start_pos + subtext.length() - 1; // if length == 1, end_pos == start_pos
-        auto end_line = (linemap.upper_bound(end_pos-1))->second;
+        auto end_line = (--linemap.upper_bound(end_pos))->second;
         json_out << "\"end_line\":\t" << end_line << "}";
         print_separator = true;
     }
