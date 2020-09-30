@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
     std::string out_file = argv[2];
     std::string charmap_file = argv[3];
 
-    std::ofstream out(out_file);
+    std::ofstream out(out_file, std::ofstream::binary);
     std::ofstream charmap(charmap_file);
     std::optional<std::ofstream> linemap;
 

@@ -33,37 +33,34 @@ emit_verbose_repeat(std::ostream &json_out, const std::string &subtext, const st
 void
 process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, unsigned long pos, int min_repeat_size,
                  std::unordered_set<std::string> &splits) {
-    unsigned long repeat_end = pos + subtext.size();
+    unsigned long repeat_end = pos + subtext.size() - 1;
     auto it = --charmap.upper_bound(pos);
-    bool split = false;
 
     do {
         // name of the source file where the start of the repeat is found
         const std::string &source_file = it->second;
         it++;
         // beginning of the next file after the start of the repeat
-        unsigned long file_end = it->first;
+        unsigned long file_end = it->first - 1;
         std::string repeat_subtext;
 
         if (it == charmap.end() || repeat_end <= file_end) {
             // there is no next file, or the repeat fits in the current file -> no more processing required
             repeat_subtext = std::move(subtext);
             subtext.clear();
+            if (repeat_subtext.size() > min_repeat_size) {
+                repeats[repeat_subtext].push_back(pos);
+            }    
         } else {
             // the repeated sequence spans multiple files -> split it
-            unsigned long actual_size = file_end - pos;
+            unsigned long actual_size = file_end - pos + 1;
             repeat_subtext = subtext.substr(0, actual_size);
             subtext = subtext.substr(actual_size);
-            pos += actual_size;
-            split = true;
-        }
-
-        if (repeat_subtext.size() > min_repeat_size) {
-            repeats[repeat_subtext].push_back(pos);
-
-            if (split) {
-                splits.insert(repeat_subtext);
+            if (repeat_subtext.size() > min_repeat_size) {
+                repeats[repeat_subtext].push_back(pos);
             }
+            splits.insert(repeat_subtext);
+            pos += actual_size;
         }
     } while (!subtext.empty());
 }
@@ -103,7 +100,7 @@ read(std::istream &is, Repeats &repeats, const CharMap &charmap, std::unordered_
         is.get();   // discard the space immediately after
         char subtext[repeat_size];
         is.read(subtext, repeat_size);
-        std::string repeat_subtext(subtext, subtext + repeat_size);
+        std::string repeat_subtext(subtext, repeat_size);
         std::getline(is, line);    // get rid of the end of the line
         std::getline(is, line, ':');
 
@@ -284,7 +281,8 @@ emit_verbose_repeat(std::ostream &json_out, const std::string &subtext, const st
     write_escaped_string(json_out, subtext);
     json_out << ",\"locations\": [";
     bool print_separator = false;
-
+    
+ 
     for (unsigned long start_pos : positions) {
         if (print_separator) json_out << ",";
 
