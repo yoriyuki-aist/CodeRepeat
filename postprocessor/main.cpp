@@ -134,6 +134,86 @@ read(std::istream &is, Repeats &repeats, const CharMap &charmap, std::unordered_
     }
 }
 
+
+void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_set<std::string> &splits,
+            const ProcessingOptions &opts, const std::map<unsigned long, unsigned long> &linemap, Repeats &late) {
+    std::unique_ptr<std::istream> bwtp(
+            opts.compress ? (std::istream *) new zstr::ifstream(opts.bwt_file) : new std::ifstream(opts.bwt_file));
+    std::istream &bwt_in = *bwtp;
+
+    if (!bwt_in) {
+        std::cerr << "bwt input file open fails. exit.\n";
+        exit(1);
+    }
+
+    std::unique_ptr<std::ostream> json_outp(
+            opts.compress ? (std::ostream *) new zstr::ofstream(opts.json_file) : new std::ofstream(opts.json_file));
+    std::ostream &json_out = *json_outp;
+
+    if (!json_out) {
+        std::cerr << "JSON output file open fails. exit.\n";
+        exit(1);
+    }
+
+      std::cerr << "Writing JSON to " << opts.json_file << "\n";
+  
+    bool print_obj_separator = false;
+
+    try {
+        while (bwt_in) {
+            Repeats repeats;
+            read(bwt_in, repeats, charmap, splits, opts);
+
+            for (const auto &repeat : repeats) {
+                // if the subtext can come from a split, we wait until the end to merge every position
+                if (splits.find(repeat.first) == splits.end()) {
+                    if (print_obj_separator) {
+                        json_out << "\n";
+                    }
+                    emit_verbose_repeat(json_out, repeat.first, repeat.second, charmap, linemap);
+                    print_obj_separator = true;
+                } else {
+                    std::vector<unsigned long> &late_positions = late[repeat.first];
+                    late_positions.insert(late_positions.begin(), repeat.second.begin(), repeat.second.end());
+                }
+            }
+        }
+    } catch (std::runtime_error &e) {
+        std::cerr << "Failed to read repeat entry at position " << bwt_in.tellg() << " in " << opts.bwt_file << ": "
+                  << e.what();
+    }
+    // bwt_in auto close
+    // json_out auto close
+}
+
+
+void
+emit_verbose_repeat(std::ostream &json_out, const std::string &subtext, const std::vector<unsigned long> &positions,
+                    const CharMap &charmap,
+                    const std::map<unsigned long, unsigned long> &linemap) {
+    json_out << "{\"text\": ";
+    write_escaped_string(json_out, subtext);
+    json_out << ",\"locations\": [";
+    bool print_separator = false;
+    
+ 
+    for (unsigned long start_pos : positions) {
+        if (print_separator) json_out << ",";
+
+        std::string filename = (--charmap.upper_bound(start_pos))->second;
+        auto start_line = (--linemap.upper_bound(start_pos))->second;
+        json_out << "{\"path\":\t\"" << filename << "\",\t";
+        json_out << "\"start_line\": " << start_line << ",\t";
+        unsigned long end_pos = start_pos + subtext.length() - 1; // if length == 1, end_pos == start_pos
+        auto end_line = (--linemap.upper_bound(end_pos))->second;
+        json_out << "\"end_line\":\t" << end_line << "}";
+        print_separator = true;
+    }
+
+    json_out << "]}";
+}
+
+
 int main(int argc, char **argv) {
     if (argc < 4) {
         std::cout << "\nUsage:\t" << argv[0]
@@ -222,82 +302,3 @@ int main(int argc, char **argv) {
     }
     return 0;
 }
-
-void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_set<std::string> &splits,
-            const ProcessingOptions &opts, const std::map<unsigned long, unsigned long> &linemap, Repeats &late) {
-    std::unique_ptr<std::istream> bwtp(
-            opts.compress ? (std::istream *) new zstr::ifstream(opts.bwt_file) : new std::ifstream(opts.bwt_file));
-    std::istream &bwt_in = *bwtp;
-
-    if (!bwt_in) {
-        std::cerr << "bwt input file open fails. exit.\n";
-        exit(1);
-    }
-
-    std::unique_ptr<std::ostream> json_outp(
-            opts.compress ? (std::ostream *) new zstr::ofstream(opts.json_file) : new std::ofstream(opts.json_file));
-    std::ostream &json_out = *json_outp;
-
-    if (!json_out) {
-        std::cerr << "JSON output file open fails. exit.\n";
-        exit(1);
-    }
-
-      std::cerr << "Writing JSON to " << opts.json_file << "\n";
-  
-    bool print_obj_separator = false;
-
-    try {
-        while (bwt_in) {
-            Repeats repeats;
-            read(bwt_in, repeats, charmap, splits, opts);
-
-            for (const auto &repeat : repeats) {
-                // if the subtext can come from a split, we wait until the end to merge every position
-                if (splits.find(repeat.first) == splits.end()) {
-                    if (print_obj_separator) {
-                        json_out << "\n";
-                    }
-                    emit_verbose_repeat(json_out, repeat.first, repeat.second, charmap, linemap);
-                    print_obj_separator = true;
-                } else {
-                    std::vector<unsigned long> &late_positions = late[repeat.first];
-                    late_positions.insert(late_positions.begin(), repeat.second.begin(), repeat.second.end());
-                }
-            }
-        }
-    } catch (std::runtime_error &e) {
-        std::cerr << "Failed to read repeat entry at position " << bwt_in.tellg() << " in " << opts.bwt_file << ": "
-                  << e.what();
-    }
-    // bwt_in auto close
-    // json_out auto close
-}
-
-
-void
-emit_verbose_repeat(std::ostream &json_out, const std::string &subtext, const std::vector<unsigned long> &positions,
-                    const CharMap &charmap,
-                    const std::map<unsigned long, unsigned long> &linemap) {
-    json_out << "{\"text\": ";
-    write_escaped_string(json_out, subtext);
-    json_out << ",\"locations\": [";
-    bool print_separator = false;
-    
- 
-    for (unsigned long start_pos : positions) {
-        if (print_separator) json_out << ",";
-
-        std::string filename = (--charmap.upper_bound(start_pos))->second;
-        auto start_line = (--linemap.upper_bound(start_pos))->second;
-        json_out << "{\"path\":\t\"" << filename << "\",\t";
-        json_out << "\"start_line\": " << start_line << ",\t";
-        unsigned long end_pos = start_pos + subtext.length() - 1; // if length == 1, end_pos == start_pos
-        auto end_line = (--linemap.upper_bound(end_pos))->second;
-        json_out << "\"end_line\":\t" << end_line << "}";
-        print_separator = true;
-    }
-
-    json_out << "]}";
-}
-
