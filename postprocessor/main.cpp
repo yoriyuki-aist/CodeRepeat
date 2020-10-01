@@ -10,7 +10,7 @@
 namespace fs = std::filesystem;
 
 using path = std::string;
-using Repeats = std::unordered_map<path, std::vector<unsigned long>>;
+using Repeats = std::unordered_map<path, std::unordered_set<unsigned long>>;
 using CharMap = std::map<unsigned long, std::string>;
 
 struct ProcessingOptions {
@@ -22,13 +22,33 @@ struct ProcessingOptions {
     std::string json_file;
 };
 
-void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_set<std::string> &splits,
-            const ProcessingOptions &opts, const std::map<unsigned long, unsigned long> &linemap, Repeats &late);
 
 void
-emit_verbose_repeat(std::ostream &json_out, const std::string &subtext, const std::vector<unsigned long> &positions,
+emit_verbose_repeat(std::ostream &json_out, const std::string &subtext, const std::unordered_set<unsigned long> &positions,
                     const CharMap &charmap,
-                    const std::map<unsigned long, unsigned long> &linemap);
+                    const std::map<unsigned long, unsigned long> &linemap) {
+    json_out << "{\"text\": ";
+    write_escaped_string(json_out, subtext);
+    json_out << ",\"locations\": [";
+    bool print_separator = false;
+    
+ 
+    for (unsigned long start_pos : positions) {
+        if (print_separator) json_out << ",";
+
+        std::string filename = (--charmap.upper_bound(start_pos))->second;
+        auto start_line = (--linemap.upper_bound(start_pos))->second;
+        json_out << "{\"path\":\t\"" << filename << "\",\t";
+        json_out << "\"start_line\": " << start_line << ",\t";
+        unsigned long end_pos = start_pos + subtext.length() - 1; // if length == 1, end_pos == start_pos
+        auto end_line = (--linemap.upper_bound(end_pos))->second;
+        json_out << "\"end_line\":\t" << end_line << "}";
+        print_separator = true;
+    }
+
+    json_out << "]}";
+}
+
 
 void
 process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, unsigned long pos, int min_repeat_size,
@@ -49,7 +69,7 @@ process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, 
             repeat_subtext = std::move(subtext);
             subtext.clear();
             if (repeat_subtext.size() > min_repeat_size) {
-                repeats[repeat_subtext].push_back(pos);
+                repeats[repeat_subtext].insert(pos);
             }    
         } else {
             // the repeated sequence spans multiple files -> split it
@@ -57,7 +77,7 @@ process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, 
             repeat_subtext = subtext.substr(0, actual_size);
             subtext = subtext.substr(actual_size);
             if (repeat_subtext.size() > min_repeat_size) {
-                repeats[repeat_subtext].push_back(pos);
+                repeats[repeat_subtext].insert(pos);
             }
             splits.insert(repeat_subtext);
             pos += actual_size;
@@ -173,8 +193,10 @@ void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_
                     emit_verbose_repeat(json_out, repeat.first, repeat.second, charmap, linemap);
                     print_obj_separator = true;
                 } else {
-                    std::vector<unsigned long> &late_positions = late[repeat.first];
-                    late_positions.insert(late_positions.begin(), repeat.second.begin(), repeat.second.end());
+                    std::unordered_set<unsigned long> &late_positions = late[repeat.first];
+                    for (const auto pos : repeat.second){
+                            late_positions.insert(pos);
+                    }
                 }
             }
         }
@@ -184,33 +206,6 @@ void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_
     }
     // bwt_in auto close
     // json_out auto close
-}
-
-
-void
-emit_verbose_repeat(std::ostream &json_out, const std::string &subtext, const std::vector<unsigned long> &positions,
-                    const CharMap &charmap,
-                    const std::map<unsigned long, unsigned long> &linemap) {
-    json_out << "{\"text\": ";
-    write_escaped_string(json_out, subtext);
-    json_out << ",\"locations\": [";
-    bool print_separator = false;
-    
- 
-    for (unsigned long start_pos : positions) {
-        if (print_separator) json_out << ",";
-
-        std::string filename = (--charmap.upper_bound(start_pos))->second;
-        auto start_line = (--linemap.upper_bound(start_pos))->second;
-        json_out << "{\"path\":\t\"" << filename << "\",\t";
-        json_out << "\"start_line\": " << start_line << ",\t";
-        unsigned long end_pos = start_pos + subtext.length() - 1; // if length == 1, end_pos == start_pos
-        auto end_line = (--linemap.upper_bound(end_pos))->second;
-        json_out << "\"end_line\":\t" << end_line << "}";
-        print_separator = true;
-    }
-
-    json_out << "]}";
 }
 
 
