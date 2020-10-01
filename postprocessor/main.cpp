@@ -23,7 +23,7 @@ struct ProcessingOptions {
 };
 
 void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_set<std::string> &splits,
-            const ProcessingOptions &opts, const std::map<unsigned long, unsigned long> &linemap);
+            const ProcessingOptions &opts, const std::map<unsigned long, unsigned long> &linemap, Repeats &late);
 
 void
 emit_verbose_repeat(std::ostream &json_out, const std::string &subtext, const std::vector<unsigned long> &positions,
@@ -198,18 +198,33 @@ int main(int argc, char **argv) {
 
     // first pass: collect repeated subtexts that get split between files
     // if there is no such repeated subtext, this is the only pass
-    filter(charmap, splits, opts, linemap);
+    Repeats late;
+    filter(charmap, splits, opts, linemap, late);
 
-    // second pass: we know which subtexts come from splits, we can guarantee they all get merged
-    if (!splits.empty()) {
-        filter(charmap, splits, opts, linemap);
+    // preparation for second pass
+    std::unique_ptr<std::ostream> json_outp(
+            opts.compress ? (std::ostream *) new zstr::ofstream(opts.json_file) : new std::ofstream(opts.json_file));
+    std::ostream &json_out = *json_outp;
+
+    if (!json_out) {
+        std::cerr << "JSON output file open fails. exit.\n";
+        exit(1);
     }
-
+    bool print_obj_separator = false;
+    // second pass: we know which subtexts come from splits, we can guarantee they all get merged
+    for (const auto &repeat : late) {
+        // after split, some "repeated sequences" may actually have a single occurrence
+        if (repeat.second.size() > 1) {
+            if (print_obj_separator) json_out << "\n";
+                emit_verbose_repeat(json_out, repeat.first, repeat.second, charmap, linemap);
+            print_obj_separator = true;
+        }
+    }
     return 0;
 }
 
 void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_set<std::string> &splits,
-            const ProcessingOptions &opts, const std::map<unsigned long, unsigned long> &linemap) {
+            const ProcessingOptions &opts, const std::map<unsigned long, unsigned long> &linemap, Repeats &late) {
     std::unique_ptr<std::istream> bwtp(
             opts.compress ? (std::istream *) new zstr::ifstream(opts.bwt_file) : new std::ifstream(opts.bwt_file));
     std::istream &bwt_in = *bwtp;
@@ -228,12 +243,9 @@ void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_
         exit(1);
     }
 
-    std::cerr << "Writing JSON to " << opts.json_file << "\n";
-
-
+      std::cerr << "Writing JSON to " << opts.json_file << "\n";
+  
     bool print_obj_separator = false;
-
-    Repeats late;
 
     try {
         while (bwt_in) {
@@ -258,20 +270,10 @@ void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_
         std::cerr << "Failed to read repeat entry at position " << bwt_in.tellg() << " in " << opts.bwt_file << ": "
                   << e.what();
     }
-
-    for (const auto &repeat : late) {
-        // after split, some "repeated sequences" may actually have a single occurrence
-        if (repeat.second.size() > 1) {
-            if (print_obj_separator) json_out << "\n";
-            emit_verbose_repeat(json_out, repeat.first, repeat.second, charmap, linemap);
-
-            print_obj_separator = true;
-        }
-    }
-
     // bwt_in auto close
     // json_out auto close
 }
+
 
 void
 emit_verbose_repeat(std::ostream &json_out, const std::string &subtext, const std::vector<unsigned long> &positions,
