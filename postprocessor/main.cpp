@@ -278,8 +278,7 @@ int main(int argc, char **argv) {
 
     // preparation for second pass
     std::unique_ptr<std::ostream> json_outp(
-            opts.compress ? (std::ostream *) new zstr::ofstream(opts.json_file, std::ios_base::app) 
-            : new std::ofstream(opts.json_file, std::ios_base::app));
+            opts.compress ? (std::ostream *) new zstr::ofstream(opts.json_file) : new std::ofstream(opts.json_file));
     std::ostream &json_out = *json_outp;
 
     if (!json_out) {
