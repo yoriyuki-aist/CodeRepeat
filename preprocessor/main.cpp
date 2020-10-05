@@ -318,6 +318,8 @@ int main(int argc, char **argv) {
             std::cerr << "linemap output file open fails. exit.\n";
             exit(1);
         }
+    } else {
+        std::cerr << "linemap is not specified. exit.\n";
     }
 
     if (!out) {
@@ -361,9 +363,6 @@ int main(int argc, char **argv) {
         }
 
         charmap << out.tellp() << "\t" << file.path().string() << "\n";
-        if (linemap) {
-            *linemap << out.tellp() << "\t" << 1 << "\n";
-        }
 
         if (debug) {
             out << "==================" << file << "==================\n";
@@ -397,7 +396,7 @@ int main(int argc, char **argv) {
         }
 
         char c;
-        unsigned long line_nb = 1;
+        unsigned long line_nb = 2;
         *linemap << out.tellp() << "\t" << 1 << "\n";
         while(in.get(c)){
             if (c=='\n'){
