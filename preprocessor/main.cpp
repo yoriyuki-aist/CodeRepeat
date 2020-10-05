@@ -6,6 +6,12 @@
 
 namespace fs = std::filesystem;
 
+static const char SPACE_CHAR = ' ';
+static const char EOF_CHAR = char(26);
+
+enum comment {
+    plain, comment_start, multiline_end, quote, line_comment, multiline_comment
+};
 
 bool endsWith(std::string const &fullString, std::string const &ending) {
     if (fullString.length() >= ending.length()) {
@@ -14,108 +20,6 @@ bool endsWith(std::string const &fullString, std::string const &ending) {
         return false;
     }
 }
-
-
-static const char SPACE_CHAR = ' ';
-static const char EOF_CHAR = char(26);
-
-enum comment {
-    plain, comment_start, multiline_end, quote, line_comment, multiline_comment
-};
-
-
-class output {
-   public:
-      // pure virtual function
-        virtual void putc(char) = 0;
-        output(output &){};
-
-        output& operator|(char c){
-            this->putc(c);
-            return *this;
-        };
-
-        void operator|(std::ifstream &in){
-            while(!in.eof()){
-                unsigned char c;
-                in >> c;
-                this->putc(c);
-            }
-            this->flush();
-        };
-
-        void flush(void){};
-};
-
-
-class wrap_ostream: public output {
-    private:
-        std::ostream *out;
-
-    public:
-        wrap_ostream(std::ostream &out){
-            this->out = &out;
-        };
-
-        void putc(char c){
-            *(this->out) << c;
-        };
-
-        void flush(void){
-            this->out->flush();
-        };
-};
-
-
-class normalize_newlines: public output {
-    private:
-        output &oc;
-
-    public:
-        normalize_newlines(output &oc){
-            this->oc = oc;
-        };
-
-        void putc(char c){
-            if (c != '\r'){
-                (this->oc).putc(c);
-            }
-        };
-
-        void flush(void){
-            (this->oc).flush();
-        };
-};
-
-
-class count_lines: public output {
-    private:
-        std::ofstream *linemap = 0;
-        std::ofstream *out = 0;
-
-    public:
-    count_lines(std::ofstream *linemap, std::ofstream *out){
-        this->linemap = linemap;
-        this->out = out;
-    };
-
-    void putc(char c){
-        *this->linemap << (*this->out).tellp() << "\t" << 1 << "\n";
-        output::putc(c);
-    };
-};
-
-
-class remove_cstyle_comments: public output {
-    private:
-        comment comment_state = plain;
-
-    public:
-        remove_cstyle_comments:
-};
-
-
-
 
 int main(int argc, char **argv) {
     if (argc < 4) {
@@ -158,7 +62,7 @@ int main(int argc, char **argv) {
     }
 
     if (!out) {
-        std::cerr << "output file open fails. exit.\n";
+        std::cout << "output file open fails. exit.\n";
         exit(1);
     }
 
