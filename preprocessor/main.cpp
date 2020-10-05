@@ -118,8 +118,6 @@ int main(int argc, char **argv) {
         bool escape = false;
         enum comment comment = plain;
         unsigned long comment_length = 0;
-        int prev_c = 0;
-        int trailing_spaces = 0;
 
         for (int c = inbuf->sbumpc(); c != EOF; c = inbuf->sbumpc()) {
             // process data in buffer
@@ -141,26 +139,24 @@ int main(int argc, char **argv) {
                     switch (c) {
                         case '\\': {
                             escape = true;
-                            outbuf->sputc (c);
-                            continue;
+                            break;
                         }
                         case '\n': {
-                            if (comment != multiline_comment &&
-                                    comment != multiline_end) {
+                            if (comment != multiline_comment) {
+                                outbuf->pubseekoff(-comment_length, std::ios_base::cur);   // erase comment
+                                comment_length = 0;
                                 comment = plain;
-                                outbuf->sputc(c);
                             }
-                            continue;
+                            break;
                         }
                         case '/': {
                             if (comment == plain) {
                                 comment = comment_start;
-                                prev_c = c;
-                                continue;
                             } else if (comment == comment_start) {
                                 comment = line_comment;
-                                continue;
                             } else if (comment == multiline_end) {
+                                outbuf->pubseekoff(-comment_length, std::ios_base::cur);   // erase comment
+                                comment_length = 0;
                                 comment = plain;
                                 continue;   // not writing the end of the comment
                             }
@@ -169,12 +165,8 @@ int main(int argc, char **argv) {
                         case '*': {
                             if (comment == comment_start) {
                                 comment = multiline_comment;
-                                continue;
-                            } else if (comment == multiline_end) {
-                                continue;
                             } else if (comment == multiline_comment) {
                                 comment = multiline_end;
-                                continue;
                             }
                             break;
                         }
@@ -188,16 +180,18 @@ int main(int argc, char **argv) {
                         }
                         default: {
                             if (comment == comment_start) {
-                                outbuf->sputc (prev_c); 
                                 comment = plain;
-                            } else if (comment == line_comment || 
-                                        comment == multiline_comment) {
-                                continue;
+                            } else if (comment == multiline_end) {
+                                comment = multiline_comment;
                             }
                         }
                     }
                 } else if (c != '\r') { // line continuation support on windows
                     escape = false;
+                }
+
+                if (comment != plain && comment != quote) {
+                    comment_length++;
                 }
             }
 
@@ -215,21 +209,19 @@ int main(int argc, char **argv) {
                     }
                     c = SPACE_CHAR;
                     skip_next_space = true;
-                    continue;
                 } else {
                     skip_next_space = false;
                 }
             }
 
             if (remove_trailing_spaces) {
+                if (space_count > 0 && (c == '\n' || c == '\r')) {
+                    outbuf->pubseekoff(-space_count, std::ios_base::cur);   // erase spaces
+                }
                 if (std::isblank(c)) {
-                    trailing_spaces++;
-                } else if (c == '\n' || c == '\r'){
-                    trailing_spaces = 0;
+                    space_count++;
                 } else {
-                    for (int j; j < trailing_spaces; j++){
-                        outbuf->sputc(SPACE_CHAR);
-                    }
+                    space_count = 0;
                 }
             }
 
