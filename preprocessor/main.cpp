@@ -23,7 +23,6 @@ static const char EOF_CHAR = char(26);
 
 class sink {
    public:
-        std::ostream *ostream = 0;
       // pure virtual function
         virtual void putc(char) = 0;
         virtual void flush(void){};
@@ -31,12 +30,10 @@ class sink {
 
 
 class filter: public sink {
-    protected:
-        sink *out = 0;
     public:
-        sink &connect(sink *out){
+        sink *out = 0;
+        void connect(sink *out){
             this->out = out;
-            return *this;
         };
 
         void flush(void){
@@ -45,19 +42,20 @@ class filter: public sink {
 
         sink *operator>>=(sink *out){
             this->connect(out);
-            this->ostream = out->ostream;
             return (sink *)this;
         };
 };
 
+
 class wrap_ostream: public sink {
+    private:
+        std::ostream *ostream = 0; 
     public:
         wrap_ostream(std::ostream &ostream){
             this->ostream = &ostream;
         };
 
         void putc(char c){
-            assert(c != 0x0C);
             *(this->ostream) << c;
         };
 
@@ -83,31 +81,6 @@ class normalize_newlines: public filter {
             if (c != '\r'){
                 this->out->putc(c);
             }
-        };
-};
-
-
-class count_lines: public filter {
-    private:
-        std::ofstream *linemap = 0;
-        unsigned long line_nb = 2;
-
-    public:
-        count_lines(std::ofstream  *linemap){
-            this->linemap = linemap;
-        };
-
-        void putc(char c){
-            if (line_nb == 1){
-                *linemap << this->ostream->tellp() << "\t" << 1 << "\n";
-            }
-
-            if (c=='\n'){
-                    *this->linemap << this->ostream->tellp() << "\t" << line_nb << "\n";
-                    line_nb++;
-            }
-            
-            this->out->putc(c);
         };
 };
 
@@ -398,31 +371,45 @@ int main(int argc, char **argv) {
 
         wrap_ostream wo = wrap_ostream(out);
         sink *out_sink = &wo;
+        remove_trailing_spaces rts = remove_trailing_spaces();
+        normalize_spaces ns = normalize_spaces();
+        newlines_to_spaces n2s = newlines_to_spaces();
+        remove_cstyle_comments rsc = remove_cstyle_comments();
+        normalize_newlines nn = normalize_newlines();
         if (do_remove_trailing_spaces){
-            out_sink = (remove_trailing_spaces() >>= out_sink);
+            out_sink = (rts >>= out_sink);
         }
 
         if (do_normalize_spaces){
-            out_sink = (normalize_spaces() >>= out_sink);
+            out_sink = (ns >>= out_sink);
         }
 
         if (do_newlines_to_spaces){
-            out_sink = (newlines_to_spaces() >>= out_sink);
+            out_sink = (n2s >>= out_sink);
         }
 
         if (delcmts){
-            out_sink = (remove_cstyle_comments() >>= out_sink);
+            out_sink = (rsc >>= out_sink);
         }
 
         if (do_normalize_newlines){
-            out_sink = (normalize_newlines() >>= out_sink);
+            out_sink = (nn >>= out_sink);
         }
 
-        if (linemap){
-            out_sink = (count_lines(&*linemap) >>= out_sink);
-        }
+        char c;
+        unsigned long line_nb = 1;
+        while(in.get(c)){
+            if (line_nb == 1){
+                    *linemap << out.tellp() << "\t" << 1 << "\n";
+            }
 
-        output_to(in, out_sink);
+            if (c=='\n'){
+                    *linemap << out.tellp() << "\t" << line_nb << "\n";
+                    line_nb++;
+            }
+            out_sink->putc(c);
+        }
+        out.flush();
 
         in.close();
     }
