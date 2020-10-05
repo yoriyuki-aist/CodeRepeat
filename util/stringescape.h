@@ -1,7 +1,57 @@
 #pragma once
 
-#include<ctype.h>
 #include <fstream>
+
+unsigned int utf8ToCodepoint(const char *&s, const char *e) {
+    const unsigned int REPLACEMENT_CHARACTER = 0xFFFD;
+
+    unsigned int firstByte = static_cast<unsigned char>(*s);
+
+    if (firstByte < 0x80)
+        return firstByte;
+
+    if (firstByte < 0xE0) {
+        if (e - s < 2)
+            return REPLACEMENT_CHARACTER;
+
+        unsigned int calculated =
+                ((firstByte & 0x1F) << 6) | (static_cast<unsigned int>(s[1]) & 0x3F);
+        s += 1;
+        // oversized encoded characters are invalid
+        return calculated < 0x80 ? REPLACEMENT_CHARACTER : calculated;
+    }
+
+    if (firstByte < 0xF0) {
+        if (e - s < 3)
+            return REPLACEMENT_CHARACTER;
+
+        unsigned int calculated = ((firstByte & 0x0F) << 12) |
+                                  ((static_cast<unsigned int>(s[1]) & 0x3F) << 6) |
+                                  (static_cast<unsigned int>(s[2]) & 0x3F);
+        s += 2;
+        // surrogates aren't valid codepoints itself
+        // shouldn't be UTF-8 encoded
+        if (calculated >= 0xD800 && calculated <= 0xDFFF)
+            return REPLACEMENT_CHARACTER;
+        // oversized encoded characters are invalid
+        return calculated < 0x800 ? REPLACEMENT_CHARACTER : calculated;
+    }
+
+    if (firstByte < 0xF8) {
+        if (e - s < 4)
+            return REPLACEMENT_CHARACTER;
+
+        unsigned int calculated = ((firstByte & 0x07) << 18) |
+                                  ((static_cast<unsigned int>(s[1]) & 0x3F) << 12) |
+                                  ((static_cast<unsigned int>(s[2]) & 0x3F) << 6) |
+                                  (static_cast<unsigned int>(s[3]) & 0x3F);
+        s += 3;
+        // oversized encoded characters are invalid
+        return calculated < 0x10000 ? REPLACEMENT_CHARACTER : calculated;
+    }
+
+    return REPLACEMENT_CHARACTER;
+}
 
 static const char hex2[] = "000102030405060708090a0b0c0d0e0f"
                            "101112131415161718191a1b1c1d1e1f"
@@ -24,14 +74,15 @@ static void appendRaw(std::ostream &out, unsigned ch) {
     out << static_cast<char>(ch);
 }
 
-
 static void appendHex(std::ostream &out, unsigned ch) {
+    const unsigned int hi = (ch >> 8u) & 0xff;
     const unsigned int lo = ch & 0xff;
-    out << "\\\\x";
+    out << "\\u";
+    out << hex2[2 * hi];
+    out << hex2[2 * hi + 1];
     out << hex2[2 * lo];
     out << hex2[2 * lo + 1];
 }
-
 
 void write_escaped_string(std::ostream &out, const std::string &str) {
     out << '"';
@@ -62,12 +113,30 @@ void write_escaped_string(std::ostream &out, const std::string &str) {
                 out << "\\t";
                 break;
             default: {
-                if (isprint(*c)) {
-                    appendRaw(out, *c);
+#ifdef EMIT_UTF_8_JSON
+                unsigned codepoint = static_cast<unsigned char>(*c);
+                if (std::iscntrl(codepoint)) {
+                    appendHex(out, codepoint);
                 } else {
-                    appendHex(out, *c);
+                    appendRaw(out, codepoint);
                 }
-               break;
+#else
+                unsigned codepoint = utf8ToCodepoint(c, end); // modifies `c`
+                if (std::iscntrl((unsigned char) codepoint)) {
+                    appendHex(out, codepoint);
+                } else if (codepoint < 0x80) {
+                    appendRaw(out, codepoint);
+                } else if (codepoint < 0x10000) {
+                    // Basic Multilingual Plane
+                    appendHex(out, codepoint);
+                } else {
+                    // Extended Unicode. Encode 20 bits as a surrogate pair.
+                    codepoint -= 0x10000;
+                    appendHex(out, 0xd800 + ((codepoint >> 10) & 0x3ff));
+                    appendHex(out, 0xdc00 + (codepoint & 0x3ff));
+                }
+#endif
+                break;
             }
         }
     }
