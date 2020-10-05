@@ -398,11 +398,8 @@ int main(int argc, char **argv) {
 
         char c;
         unsigned long line_nb = 1;
+        *linemap << out.tellp() << "\t" << 1 << "\n";
         while(in.get(c)){
-            if (line_nb == 1){
-                    *linemap << out.tellp() << "\t" << 1 << "\n";
-            }
-
             if (c=='\n'){
                     *linemap << out.tellp() << "\t" << line_nb << "\n";
                     line_nb++;
