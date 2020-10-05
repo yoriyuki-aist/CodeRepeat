@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <filesystem>
 #include <set>
-#include<assert.h>
 #include "../util/ArgParser.h"
 
 namespace fs = std::filesystem;
@@ -20,291 +19,102 @@ bool endsWith(std::string const &fullString, std::string const &ending) {
 static const char SPACE_CHAR = ' ';
 static const char EOF_CHAR = char(26);
 
-
-class sink {
-   public:
-        std::ostream *ostream = 0;
-      // pure virtual function
-        virtual void putc(char) = 0;
-        virtual void flush(void){};
+enum comment {
+    plain, comment_start, multiline_end, quote, line_comment, multiline_comment
 };
 
 
-class filter: public sink {
-    protected:
-        sink *out = 0;
-    public:
-        sink &connect(sink *out){
-            this->out = out;
+class output {
+   public:
+      // pure virtual function
+        virtual void putc(char) = 0;
+        output(output &){};
+
+        output& operator|(char c){
+            this->putc(c);
             return *this;
+        };
+
+        void operator|(std::ifstream &in){
+            while(!in.eof()){
+                unsigned char c;
+                in >> c;
+                this->putc(c);
+            }
+            this->flush();
+        };
+
+        void flush(void){};
+};
+
+
+class wrap_ostream: public output {
+    private:
+        std::ostream *out;
+
+    public:
+        wrap_ostream(std::ostream &out){
+            this->out = &out;
+        };
+
+        void putc(char c){
+            *(this->out) << c;
         };
 
         void flush(void){
             this->out->flush();
         };
-
-        sink *operator>>=(sink *out){
-            this->connect(out);
-            this->ostream = out->ostream;
-            return (sink *)this;
-        };
 };
 
-class wrap_ostream: public sink {
+
+class normalize_newlines: public output {
+    private:
+        output &oc;
+
     public:
-        wrap_ostream(std::ostream &ostream){
-            this->ostream = &ostream;
+        normalize_newlines(output &oc){
+            this->oc = oc;
         };
 
-        void putc(char c){
-            assert(c != 0x0C);
-            *(this->ostream) << c;
-        };
-
-        void flush(void){
-            (this->ostream)->flush();
-        };
-};
-
-
-
-void output_to(std::istream &in, sink *out){
-    char c;
-    while(in.get(c)){
-        out->putc(c);
-    }
-    out->flush();
-};
-
-
-class normalize_newlines: public filter {
-    public:
         void putc(char c){
             if (c != '\r'){
-                this->out->putc(c);
+                (this->oc).putc(c);
             }
         };
-};
-
-
-class count_lines: public filter {
-    private:
-        std::ofstream *linemap = 0;
-        unsigned long line_nb = 2;
-
-    public:
-        count_lines(std::ofstream  *linemap){
-            this->linemap = linemap;
-        };
-
-        void putc(char c){
-            if (line_nb == 1){
-                *linemap << this->ostream->tellp() << "\t" << 1 << "\n";
-            }
-
-            if (c=='\n'){
-                    *this->linemap << this->ostream->tellp() << "\t" << line_nb << "\n";
-                    line_nb++;
-            }
-            
-            this->out->putc(c);
-        };
-};
-
-
-enum comment {
-    plain, comment_start, multiline_end, quote, line_comment, multiline_comment
-};
-
-class remove_cstyle_comments: public filter {
-    private:
-        comment comment_state = plain;
-        bool escape = false;
-        char prev_c = 0;
-
-    public:
-        remove_cstyle_comments(void){};
 
         void flush(void){
-            switch(comment_state) {
-                case multiline_end:
-                case comment_start: {
-                    this->out->putc(prev_c);
-                    break;
-                }
-            }
-        };
-
-        void putc(char c){
-            if (!this->escape) {
-                switch(c){
-                    case '\\': {
-                        escape = true;
-                        this->out->putc(c);
-                        break;
-                    }
-                    case '\n': {
-                        switch (comment_state){
-                            case comment_start:{
-                                this->out->putc(prev_c);
-                                comment_state = plain;
-                                break;
-                            }
-                            case multiline_end:{
-                                comment_state = multiline_comment;
-                                break;
-                            }
-                            case line_comment:{
-                                this->out->putc(c);
-                                comment_state = plain;
-                                break;
-                            }
-                            case multiline_comment:{
-                                break;
-                            }
-                            default:{
-                                this->out->putc(c);
-                                break;
-                            }
-                        }
-                        break;
-                    }
-                    case '/': {
-                        switch (comment_state) {
-                            case plain: {
-                                comment_state = comment_start;
-                                break;
-                            }
-                            case comment_start: {
-                                comment_state = line_comment;
-                                break;
-                            }
-                            case multiline_end: {
-                                comment_state = plain;
-                                break;
-                            }
-                            case line_comment:
-                            case multiline_comment: {
-                                break;
-                            }
-                            default: {
-                                this->out->putc(c);
-                            }
-                        }
-                        break;
-                    }
-                    case '*': {
-                        switch (comment_state) {
-                            case comment_start: {
-                                comment_state = multiline_comment;
-                                break;
-                            }
-                            case multiline_end: {
-                                break;
-                            }
-                            case line_comment: {
-                                break;
-                            }
-                            case multiline_comment: {
-                                comment_state = multiline_end;
-                                break;
-                            }
-                            default: {
-                                this->out->putc(c);
-                            }   
-                        }
-                        break;
-                    }
-                    case '"': {
-                        if (comment_state == plain) {
-                            comment_state = quote;
-                        } else if (comment_state == quote) {
-                            comment_state = plain;
-                        }
-                        break;
-                    }
-                    default: {
-                        switch (comment_state) {
-                            case comment_start: {
-                                this->out->putc(prev_c);
-                                this->out->putc(c);
-                                comment_state = plain;
-                                break;
-                            }
-                            case multiline_end: {
-                                comment_state = multiline_comment;
-                                break;
-                            }
-                            case multiline_comment:
-                            case line_comment: {
-                                break;
-                            }
-                            default: {
-                                this->out->putc(c);
-                            }
-                        }
-                    }
-                }   
-            } else if (c != '\r') { // line continuation support on windows
-                this->out->putc(c);
-                this->escape = false;
-            }
-            this->prev_c = c;
+            (this->oc).flush();
         };
 };
 
 
-class newlines_to_spaces: public filter {
-    public:
-        void putc(char c){
-            if (c == '\r' || c == '\n'){
-                c = SPACE_CHAR;
-            }
-            this->out->putc(c);
-        };
-};
-
-
-class normalize_spaces: public filter {
+class count_lines: public output {
     private:
-        bool skip_next_space = false;
-    
-    public:
+        std::ofstream *linemap = 0;
+        std::ofstream *out = 0;
 
-        void putc(char c){
-            if (std::isblank(c)) {
-                if (!this->skip_next_space) {
-                    this->out->putc(SPACE_CHAR);
-                    this->skip_next_space = true;
-                } 
-            } else {
-                this->skip_next_space = false;
-                this->out->putc(c);
-            }
-        };
+    public:
+    count_lines(std::ofstream *linemap, std::ofstream *out){
+        this->linemap = linemap;
+        this->out = out;
+    };
+
+    void putc(char c){
+        *this->linemap << (*this->out).tellp() << "\t" << 1 << "\n";
+        output::putc(c);
+    };
 };
 
 
-class remove_trailing_spaces: public filter {
+class remove_cstyle_comments: public output {
     private:
-        int trailing_spaces = 0;
+        comment comment_state = plain;
 
     public:
-        void putc(char c){
-            if (std::isblank(c)) {
-                this->trailing_spaces++;
-            } else if (c == '\n' || c == '\r'){
-                this->trailing_spaces = 0;
-                this->out->putc(c);
-            } else {
-                for (int j = 0; j < trailing_spaces; j++){
-                    this->out->putc(SPACE_CHAR);
-                }
-                this->trailing_spaces = 0;
-                this->out->putc(c);
-            }
-        };
+        remove_cstyle_comments:
 };
+
+
 
 
 int main(int argc, char **argv) {
@@ -316,18 +126,18 @@ int main(int argc, char **argv) {
     ArgParser args(argv + 4, argv + argc);
 
     // (\h+)       -> ' '
-    bool do_normalize_spaces = args.cmdOptionExists("-ns");
+    bool normalize_spaces = args.cmdOptionExists("-ns");
     // (\h+\r?\n)  -> ''
-    bool do_remove_trailing_spaces = args.cmdOptionExists("-ntr");
+    bool remove_trailing_spaces = args.cmdOptionExists("-ntr");
     // (\r?\n)     -> '\n'
-    bool do_normalize_newlines = args.cmdOptionExists("-nl");
+    bool normalize_newlines = args.cmdOptionExists("-nl");
     // (\r?\n)     -> ' '
-    bool delcmts = args.cmdOptionExists("--delete-comments");
-    bool do_newlines_to_spaces = args.cmdOptionExists("-nl2s");
+    bool newlines_to_spaces = args.cmdOptionExists("-nl2s");
     bool eof = args.cmdOptionExists("-eof");
     bool debug = args.cmdOptionExists("--debug");
     bool verbose = args.cmdOptionExists("-v");
     bool symlink = args.cmdOptionExists("--symlinks");
+    bool delcmts = args.cmdOptionExists("--delete-comments");
     std::optional<std::vector<std::string>> file_extensions = args.getCmdArgs("--extensions");
     std::optional<std::string> linemap_file = args.getCmdArg("--linemap");
 
@@ -396,44 +206,144 @@ int main(int argc, char **argv) {
             out << "==================" << file << "==================\n";
         }
 
-        wrap_ostream wo = wrap_ostream(out);
-        sink *out_sink = &wo;
-        if (do_remove_trailing_spaces){
-            out_sink = (remove_trailing_spaces() >>= out_sink);
+        std::filebuf *inbuf = in.rdbuf();
+        std::filebuf *outbuf = out.rdbuf();
+        bool skip_next_space = false;
+        unsigned long space_count = 0;
+        unsigned long line_nb = 2;
+        bool escape = false;
+        enum comment comment = plain;
+        unsigned long comment_length = 0;
+        int prev_c = 0;
+        int trailing_spaces = 0;
+
+        for (int c = inbuf->sbumpc(); c != EOF; c = inbuf->sbumpc()) {
+            // process data in buffer
+            if (normalize_newlines) {
+                if (c == '\r') {
+                    continue;
+                }
+            }
+
+            if (linemap) {
+                if (c == '\n') {
+                    *linemap << out.tellp() << "\t" << line_nb << "\n";
+                    ++line_nb;
+                }
+            }
+
+            if (delcmts) {
+                if (!escape) {
+                    switch (c) {
+                        case '\\': {
+                            escape = true;
+                            outbuf->sputc (c);
+                            continue;
+                        }
+                        case '\n': {
+                            if (comment != multiline_comment &&
+                                    comment != multiline_end) {
+                                comment = plain;
+                                outbuf->sputc(c);
+                            }
+                            continue;
+                        }
+                        case '/': {
+                            if (comment == plain) {
+                                comment = comment_start;
+                                prev_c = c;
+                                continue;
+                            } else if (comment == comment_start) {
+                                comment = line_comment;
+                                continue;
+                            } else if (comment == multiline_end) {
+                                comment = plain;
+                                continue;   // not writing the end of the comment
+                            }
+                            break;
+                        }
+                        case '*': {
+                            if (comment == comment_start) {
+                                comment = multiline_comment;
+                                continue;
+                            } else if (comment == multiline_end) {
+                                continue;
+                            } else if (comment == multiline_comment) {
+                                comment = multiline_end;
+                                continue;
+                            }
+                            break;
+                        }
+                        case '"': {
+                            if (comment == plain) {
+                                comment = quote;
+                            } else if (comment == quote) {
+                                comment = plain;
+                            }
+                            break;
+                        }
+                        default: {
+                            if (comment == comment_start) {
+                                outbuf->sputc (prev_c); 
+                                comment = plain;
+                            } else if (comment == line_comment || 
+                                        comment == multiline_comment) {
+                                continue;
+                            }
+                        }
+                    }
+                } else if (c != '\r') { // line continuation support on windows
+                    escape = false;
+                }
+            }
+
+            if (newlines_to_spaces) {
+                if (c == '\n' || c == '\r') {
+                    c = SPACE_CHAR;
+                }
+            }
+
+            // space normalization must be after space-producing transformations
+            if (normalize_spaces) {
+                if (std::isblank(c)) {
+                    if (skip_next_space) {
+                        continue;
+                    }
+                    c = SPACE_CHAR;
+                    skip_next_space = true;
+                    continue;
+                } else {
+                    skip_next_space = false;
+                }
+            }
+
+            if (remove_trailing_spaces) {
+                if (std::isblank(c)) {
+                    trailing_spaces++;
+                } else if (c == '\n' || c == '\r'){
+                    trailing_spaces = 0;
+                } else {
+                    for (int j; j < trailing_spaces; j++){
+                        outbuf->sputc(SPACE_CHAR);
+                    }
+                }
+            }
+
+            outbuf->sputc (c);
         }
 
-        if (do_normalize_spaces){
-            out_sink = (normalize_spaces() >>= out_sink);
+        if (eof) {
+            outbuf->sputc(EOF_CHAR);
         }
-
-        if (do_newlines_to_spaces){
-            out_sink = (newlines_to_spaces() >>= out_sink);
-        }
-
-        if (delcmts){
-            out_sink = (remove_cstyle_comments() >>= out_sink);
-        }
-
-        if (do_normalize_newlines){
-            out_sink = (normalize_newlines() >>= out_sink);
-        }
-
-        if (linemap){
-            out_sink = (count_lines(&*linemap) >>= out_sink);
-        }
-
-        output_to(in, out_sink);
 
         in.close();
     }
 
     charmap << out.tellp() << "\t\n";   // blank file name == end
-//    fs::resize_file(out_file, out.tellp()); // pubseekoff operations can lead to ghost data
+    fs::resize_file(out_file, out.tellp()); // pubseekoff operations can lead to ghost data
     out.close();
     charmap.close();
-    if (linemap) {
-        linemap->close();
-    }
+    if (linemap) linemap->close();
+
     std::cout << "\nDone!\n";
 }
-
