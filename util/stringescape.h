@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fstream>
+#include <ctype.h>
 
 unsigned int utf8ToCodepoint(const char *&s, const char *e) {
     const unsigned int REPLACEMENT_CHARACTER = 0xFFFD;
@@ -75,11 +76,8 @@ static void appendRaw(std::ostream &out, unsigned ch) {
 }
 
 static void appendHex(std::ostream &out, unsigned ch) {
-    const unsigned int hi = (ch >> 8u) & 0xff;
     const unsigned int lo = ch & 0xff;
-    out << "\\u";
-    out << hex2[2 * hi];
-    out << hex2[2 * hi + 1];
+    out << "\\\\x";
     out << hex2[2 * lo];
     out << hex2[2 * lo + 1];
 }
@@ -113,30 +111,11 @@ void write_escaped_string(std::ostream &out, const std::string &str) {
                 out << "\\t";
                 break;
             default: {
-#ifdef EMIT_UTF_8_JSON
-                unsigned codepoint = static_cast<unsigned char>(*c);
-                if (std::iscntrl(codepoint)) {
-                    appendHex(out, codepoint);
+                if (isprint(*c)) {
+                    appendRaw(out, *c);
                 } else {
-                    appendRaw(out, codepoint);
+                    appendHex(out, *c);
                 }
-#else
-                unsigned codepoint = utf8ToCodepoint(c, end); // modifies `c`
-                if (std::iscntrl((unsigned char) codepoint)) {
-                    appendHex(out, codepoint);
-                } else if (codepoint < 0x80) {
-                    appendRaw(out, codepoint);
-                } else if (codepoint < 0x10000) {
-                    // Basic Multilingual Plane
-                    appendHex(out, codepoint);
-                } else {
-                    // Extended Unicode. Encode 20 bits as a surrogate pair.
-                    codepoint -= 0x10000;
-                    appendHex(out, 0xd800 + ((codepoint >> 10) & 0x3ff));
-                    appendHex(out, 0xdc00 + (codepoint & 0x3ff));
-                }
-#endif
-                break;
             }
         }
     }
