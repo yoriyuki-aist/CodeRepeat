@@ -11,11 +11,13 @@ sys.stdin.reconfigure(encoding="ascii", errors="surrogateescape")
 
 def output_repeat(repeat):
     dirname = os.path.dirname(repeat.path)
-    dirname = os.path.basename(os.path.normpath(dirname))
     filename = os.path.basename(repeat.path)
     start_line = repeat.start
     end_line = repeat.end
-    args.output.write("{},{},{},{}".format(dirname, filename, start_line, end_line))
+    if args.bigclonebench:
+        args.output.write("{},{},{}".format(filename, start_line, end_line))
+    else:
+        args.output.write("{},{},{},{}".format(dirname, filename, start_line, end_line))
 
 
 def output_pair(pair):
@@ -94,6 +96,7 @@ parser.add_argument('-i', '--input', type=argparse.FileType('r', encoding="ascii
                     help='input json file')
 parser.add_argument('-R', '--maxrepeat', type=int, default=0, help='Maximal clone class size')
 parser.add_argument('-G', '--gap', type=int, default=0, help='Allowed gap')
+parser.add_argument('--bigclonebench', action='store_true')
 
 args = parser.parse_args()
 
