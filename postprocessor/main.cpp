@@ -51,8 +51,7 @@ emit_verbose_repeat(std::ostream &json_out, const std::string &subtext, const st
 
 
 void
-process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, unsigned long pos, int min_repeat_size,
-                 std::unordered_set<std::string> &splits) {
+process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, unsigned long pos, int min_repeat_size) {
     unsigned long repeat_end = pos + subtext.size() - 1;
     auto it = --charmap.upper_bound(pos);
 
@@ -79,7 +78,6 @@ process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, 
             if (repeat_subtext.size() > min_repeat_size) {
                 repeats[repeat_subtext].insert(pos);
             }
-            splits.insert(repeat_subtext);
             pos += actual_size;
         }
     } while (!subtext.empty());
@@ -87,8 +85,7 @@ process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, 
 
 // custom extractor for objects of type RepeatEntry
 void
-read(std::istream &is, Repeats &repeats, const CharMap &charmap, std::unordered_set<std::string> &splits,
-     const ProcessingOptions &opts) {
+read(std::istream &is, Repeats &repeats, const CharMap &charmap, const ProcessingOptions &opts) {
     std::istream::sentry s(is);
     std::string line;
 
@@ -146,66 +143,12 @@ read(std::istream &is, Repeats &repeats, const CharMap &charmap, std::unordered_
         for (unsigned long i = 0; i < repeat_occurrences; i++) {
             unsigned long pos;
             is >> pos;
-
+            
             if (!skip) {
-                process_position(charmap, repeats, repeat_subtext, pos, opts.min_repeat_length, splits);
+                process_position(charmap, repeats, repeat_subtext, pos, opts.min_repeat_length);
             }
         }
     }
-}
-
-
-void filter(const std::map<unsigned long, std::string> &charmap, std::unordered_set<std::string> &splits,
-            const ProcessingOptions &opts, const std::map<unsigned long, unsigned long> &linemap, Repeats &late) {
-    std::unique_ptr<std::istream> bwtp(
-            opts.compress ? (std::istream *) new zstr::ifstream(opts.bwt_file) : new std::ifstream(opts.bwt_file));
-    std::istream &bwt_in = *bwtp;
-
-    if (!bwt_in) {
-        std::cerr << "bwt input file open fails. exit.\n";
-        exit(1);
-    }
-
-    std::unique_ptr<std::ostream> json_outp(
-            opts.compress ? (std::ostream *) new zstr::ofstream(opts.json_file) : new std::ofstream(opts.json_file));
-    std::ostream &json_out = *json_outp;
-
-    if (!json_out) {
-        std::cerr << "JSON output file open fails. exit.\n";
-        exit(1);
-    }
-
-      std::cerr << "Writing JSON to " << opts.json_file << "\n";
-  
-    bool print_obj_separator = false;
-
-    try {
-        while (bwt_in) {
-            Repeats repeats;
-            read(bwt_in, repeats, charmap, splits, opts);
-
-            for (const auto &repeat : repeats) {
-                // if the subtext can come from a split, we wait until the end to merge every position
-                if (splits.find(repeat.first) == splits.end()) {
-                    if (print_obj_separator) {
-                        json_out << "\n";
-                    }
-                    emit_verbose_repeat(json_out, repeat.first, repeat.second, charmap, linemap);
-                    print_obj_separator = true;
-                } else {
-                    std::unordered_set<unsigned long> &late_positions = late[repeat.first];
-                    for (const auto pos : repeat.second){
-                            late_positions.insert(pos);
-                    }
-                }
-            }
-        }
-    } catch (std::runtime_error &e) {
-        std::cerr << "Failed to read repeat entry at position " << bwt_in.tellg() << " in " << opts.bwt_file << ": "
-                  << e.what();
-    }
-    // bwt_in auto close
-    // json_out auto close
 }
 
 
@@ -271,11 +214,34 @@ int main(int argc, char **argv) {
             json_file
     };
 
-    // first pass: collect repeated subtexts that get split between files
-    // if there is no such repeated subtext, this is the only pass
+    // first pass: colecting repeats splitting if necessary
+    Repeats repeats;
     Repeats late;
-    filter(charmap, splits, opts, linemap, late);
 
+    std::unique_ptr<std::istream> bwtp(
+            opts.compress ? (std::istream *) new zstr::ifstream(opts.bwt_file) : new std::ifstream(opts.bwt_file));
+    std::istream &bwt_in = *bwtp;
+
+    if (!bwt_in) {
+        std::cerr << "bwt input file open fails. exit.\n";
+        exit(1);
+    }
+    try {
+        while (bwt_in) {
+            read(bwt_in, repeats, charmap, opts);
+
+            for (const auto &repeat : repeats) {
+                std::unordered_set<unsigned long> &late_positions = late[repeat.first];
+                for (const auto pos : repeat.second){
+                    late_positions.insert(pos);   
+                }
+            }
+        }
+    } catch (std::runtime_error &e) {
+        std::cerr << "Failed to read repeat entry at position " << bwt_in.tellg() << " in " << opts.bwt_file << ": "
+                  << e.what();
+    }
+    
     // preparation for second pass
     std::unique_ptr<std::ostream> json_outp(
             opts.compress ? (std::ostream *) new zstr::ofstream(opts.json_file) : new std::ofstream(opts.json_file));
@@ -286,7 +252,7 @@ int main(int argc, char **argv) {
         exit(1);
     }
     bool print_obj_separator = false;
-    // second pass: we know which subtexts come from splits, we can guarantee they all get merged
+    // output repeats: we know which subtexts come from splits, we can guarantee they all get merged
     for (const auto &repeat : late) {
         // after split, some "repeated sequences" may actually have a single occurrence
         if (repeat.second.size() > 1) {
