@@ -1,7 +1,5 @@
 #include <iostream>
 #include <algorithm>
-#include <set>
-#include <regex>
 #include <unordered_set>
 #include "../util/stringescape.h"
 #include "../util/ArgParser.h"
@@ -50,8 +48,20 @@ emit_verbose_repeat(std::ostream &json_out, const std::string &subtext, const st
 }
 
 
+
+bool should_skip(std::string &text, const ProcessingOptions &opts){
+   bool skip = (text.size() <= opts.min_repeat_length) ||
+                        (opts.skip_blank_repeats && std::all_of(text.begin(), text.end(), [](char c) {
+                            return std::isblank(c) || std::iscntrl(c);
+                        })) ||
+                        (opts.skip_null_repeats &&
+                        std::all_of(text.begin(), text.end(), [](char c) { return c == 0; }));   
+    return skip;
+}
+
+
 void
-process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, unsigned long pos, int min_repeat_size) {
+process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, unsigned long pos, const ProcessingOptions &opts) {
     unsigned long repeat_end = pos + subtext.size() - 1;
     auto it = --charmap.upper_bound(pos);
 
@@ -67,7 +77,7 @@ process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, 
             // there is no next file, or the repeat fits in the current file -> no more processing required
             repeat_subtext = std::move(subtext);
             subtext.clear();
-            if (repeat_subtext.size() > min_repeat_size) {
+            if (!should_skip(repeat_subtext, opts)) {
                 repeats[repeat_subtext].insert(pos);
             }    
         } else {
@@ -75,7 +85,7 @@ process_position(const CharMap &charmap, Repeats &repeats, std::string subtext, 
             unsigned long actual_size = file_end - pos + 1;
             repeat_subtext = subtext.substr(0, actual_size);
             subtext = subtext.substr(actual_size);
-            if (repeat_subtext.size() > min_repeat_size) {
+            if (!should_skip(repeat_subtext, opts)) {
                 repeats[repeat_subtext].insert(pos);
             }
             pos += actual_size;
@@ -132,21 +142,12 @@ read(std::istream &is, Repeats &repeats, const CharMap &charmap, const Processin
             throw std::runtime_error("Expected text positions in fifth Repeat line");
         }
 
-        // whether this repeated sequence should be skipped (we still have to consume the rest of the input)
-        bool skip = (repeat_size <= opts.min_repeat_length) ||
-                    (opts.skip_blank_repeats && std::all_of(repeat_subtext.begin(), repeat_subtext.end(), [](char c) {
-                        return std::isblank(c) || std::iscntrl(c);
-                    })) ||
-                    (opts.skip_null_repeats &&
-                     std::all_of(repeat_subtext.begin(), repeat_subtext.end(), [](char c) { return c == 0; }));
-
         for (unsigned long i = 0; i < repeat_occurrences; i++) {
             unsigned long pos;
             is >> pos;
             
-            if (!skip) {
-                process_position(charmap, repeats, repeat_subtext, pos, opts.min_repeat_length);
-            }
+            std::cerr << is.tellg() <<'\r';
+            process_position(charmap, repeats, repeat_subtext, pos, opts);
         }
     }
 }
@@ -216,7 +217,6 @@ int main(int argc, char **argv) {
 
     // first pass: colecting repeats splitting if necessary
     Repeats repeats;
-    Repeats late;
 
     std::unique_ptr<std::istream> bwtp(
             opts.compress ? (std::istream *) new zstr::ifstream(opts.bwt_file) : new std::ifstream(opts.bwt_file));
@@ -229,13 +229,6 @@ int main(int argc, char **argv) {
     try {
         while (bwt_in) {
             read(bwt_in, repeats, charmap, opts);
-
-            for (const auto &repeat : repeats) {
-                std::unordered_set<unsigned long> &late_positions = late[repeat.first];
-                for (const auto pos : repeat.second){
-                    late_positions.insert(pos);   
-                }
-            }
         }
     } catch (std::runtime_error &e) {
         std::cerr << "Failed to read repeat entry at position " << bwt_in.tellg() << " in " << opts.bwt_file << ": "
@@ -253,7 +246,7 @@ int main(int argc, char **argv) {
     }
     bool print_obj_separator = false;
     // output repeats: we know which subtexts come from splits, we can guarantee they all get merged
-    for (const auto &repeat : late) {
+    for (const auto &repeat : repeats) {
         // after split, some "repeated sequences" may actually have a single occurrence
         if (repeat.second.size() > 1) {
             if (print_obj_separator) json_out << "\n";
