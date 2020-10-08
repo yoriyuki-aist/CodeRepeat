@@ -146,7 +146,6 @@ read(std::istream &is, Repeats &repeats, const CharMap &charmap, const Processin
             unsigned long pos;
             is >> pos;
             
-            std::cerr << is.tellg() <<'\r';
             process_position(charmap, repeats, repeat_subtext, pos, opts);
         }
     }
