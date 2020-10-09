@@ -15,7 +15,8 @@ def output_repeat(repeat):
     start_line = repeat.start
     end_line = repeat.end
     if args.bigclonebench:
-        args.output.write("{},{},{}".format(filename, start_line, end_line))
+        dirname = os.path.basename(dirname)
+        args.output.write("{},{},{},{}".format(dirname, filename, start_line, end_line))
     else:
         args.output.write("{},{},{},{}".format(dirname, filename, start_line, end_line))
 
