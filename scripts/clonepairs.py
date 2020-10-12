@@ -98,6 +98,7 @@ parser.add_argument('-i', '--input', type=argparse.FileType('r', encoding="ascii
 parser.add_argument('-R', '--maxrepeat', type=int, default=0, help='Maximal clone class size')
 parser.add_argument('-G', '--gap', type=int, default=0, help='Allowed gap')
 parser.add_argument('--bigclonebench', action='store_true')
+parser.add_argument('-m', '--minlines', type=int, default=1, help='Minimal line numbers of clone pairs')
 
 args = parser.parse_args()
 
@@ -113,4 +114,5 @@ for line in tqdm(args.input):
 
 for _, pairs in pairs.items():
     for pair in pairs:
-        output_pair(pair)
+        if pair[0].end - pair[0].start >= args.minlines and pair[1].end - pair[1].start >= args.minlines:
+            output_pair(pair)
