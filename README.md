@@ -3,8 +3,6 @@
 Code Repeats is a clone detector for large sets of files.
 It can be used with both text repositories and binaries.
 
-*Copyright 2020 Fabien Hervé, Yoriyuki Yamagata*
-
 ## Prerequisites
 - Cmake (build tool)
 - zlib (compression library)
