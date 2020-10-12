@@ -77,9 +77,10 @@ def is_included(pair1, pair2):
     if not get_key(pair1) == get_key(pair2):
         return False
     else:
-        return pair1[0].start >= pair2[0].start and 
-        pair1[0].end <= pair2[0].end and
-        pair1[1].start >= pair2[1].start and pair1[1].end <= pair2[1].end and
+        return (pair1[0].start >= pair2[0].start and 
+        pair1[0].end <= pair2[0].end and 
+        pair1[1].start >= pair2[1].start and 
+        pair1[1].end <= pair2[1].end)
 
 
 def merge_to_pairs(pair, pairs):
