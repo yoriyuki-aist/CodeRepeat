@@ -1,10 +1,10 @@
 #include <iostream>
 #include <algorithm>
+#include <filesystem>
 #include <set>
 #include "../util/ArgParser.h"
-#include <../util/filesystem.h>
 
-namespace fs = ghc::filesystem;
+namespace fs = std::filesystem;
 
 static const char SPACE_CHAR = ' ';
 static const char EOF_CHAR = char(26);
