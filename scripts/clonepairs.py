@@ -2,11 +2,13 @@
 import argparse
 import json
 import os
+import io
 import sys
 from collections import namedtuple
 from tqdm import tqdm
 
-sys.stdin.reconfigure(encoding="ascii", errors="surrogateescape")
+input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='backslashreplace')
+output_stream = io.TextIOWrapper(sys.stdout.buffer, encoding='backslashreplace')
 
 
 def output_repeat(repeat):
@@ -105,9 +107,9 @@ def merge_to_pairs(pair, pairs):
 
 
 parser = argparse.ArgumentParser(description='Generate non-overlapping clone pairs in the format usable for BigCloneBench')
-parser.add_argument('-o', '--output', type=argparse.FileType('w', encoding="ascii", errors="surrogateescape"), default=sys.stdout,
+parser.add_argument('-o', '--output', type=argparse.FileType('w', encoding="ascii", errors='backslashreplace'), default=output_stream,
                     help='output json file')
-parser.add_argument('-i', '--input', type=argparse.FileType('r', encoding="ascii", errors="surrogateescape"), default=sys.stdin,
+parser.add_argument('-i', '--input', type=argparse.FileType('r', encoding="ascii", errors='backslashreplace'), default=input_stream,
                     help='input json file')
 parser.add_argument('-R', '--maxrepeat', type=int, default=0, help='Maximal clone class size')
 parser.add_argument('-G', '--gap', type=int, default=0, help='Allowed gap')

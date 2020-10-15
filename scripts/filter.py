@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import io
 import sys
-sys.stdin.reconfigure(encoding="ascii", errors="surrogateescape")
+
+input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='backslashreplace')
+output_stream = io.TextIOWrapper(sys.stdout.buffer, encoding='backslashreplace')
 
 parser = argparse.ArgumentParser(description='Filter repeats')
 parser.add_argument('-m', '--min', metavar='N', type=int, default=0,
                     help='minimal size of repeats')
 parser.add_argument('-c', '--occ', type=int, default=0,
                     help='minimal number of occurrences')
-parser.add_argument('-o', '--output', type=argparse.FileType('w', encoding="ascii", errors="surrogateescape"), default=sys.stdout,
+parser.add_argument('-o', '--output', type=argparse.FileType('w', encoding="ascii", errors='backslashreplace'), default=output_stream,
                     help='output json file')
-parser.add_argument('-i', '--input', type=argparse.FileType('r', encoding="ascii", errors="surrogateescape"), default=sys.stdin,
+parser.add_argument('-i', '--input', type=argparse.FileType('r', encoding="ascii", errors='backslashreplace'), default=input_stream,
                     help='input json file')
 
 args = parser.parse_args()
