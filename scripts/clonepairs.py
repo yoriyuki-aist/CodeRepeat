@@ -7,8 +7,8 @@ import sys
 from collections import namedtuple
 from tqdm import tqdm
 
-input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='ascii', error='backslashreplace')
-output_stream = io.TextIOWrapper(sys.stdout.buffer, encoding='ascii', error=''backslashreplace')
+input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='ascii', errors='backslashreplace')
+output_stream = io.TextIOWrapper(sys.stdout.buffer, encoding='ascii', errors='backslashreplace')
 
 
 def output_repeat(repeat):
