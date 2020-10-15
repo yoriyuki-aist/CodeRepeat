@@ -4,8 +4,8 @@ import json
 import io
 import sys
 
-input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='backslashreplace')
-output_stream = io.TextIOWrapper(sys.stdout.buffer, encoding='backslashreplace')
+input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='ascii', error='backslashreplace')
+output_stream = io.TextIOWrapper(sys.stdout.buffer, encoding='ascii', error='backslashreplace')
 
 parser = argparse.ArgumentParser(description='Filter repeats')
 parser.add_argument('-m', '--min', metavar='N', type=int, default=0,
