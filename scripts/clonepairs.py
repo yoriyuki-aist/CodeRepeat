@@ -75,16 +75,6 @@ def merge_contacted_pair_list(pair_list):
     return (Region(key[0], start1, end1), Region(key[1], start2, end2))
 
 
-def is_included(pair1, pair2):
-    if not get_key(pair1) == get_key(pair2):
-        return False
-    else:
-        return (pair1[0].start >= pair2[0].start and 
-        pair1[0].end <= pair2[0].end and 
-        pair1[1].start >= pair2[1].start and 
-        pair1[1].end <= pair2[1].end)
-
-
 def merge_to_pairs(pair, pairs):
     pair = normalize_pair(pair)
     key = get_key(pair)
@@ -92,19 +82,14 @@ def merge_to_pairs(pair, pairs):
         pairs[key] = [pair]
     else:
         pair_list = pairs[key]
-        if args.gap >= 0:
-            all_contacted_pairs = contacted_pairs(pair, pair_list)
-            for p in all_contacted_pairs:
-                pair_list.remove(p)
-            all_contacted_pairs.append(pair)
-            merged = merge_contacted_pair_list(all_contacted_pairs)
-            pair_list.append(merged)
-            pairs[key] = pair_list
-        else:
-            if all(not is_included(pair, p) for p in pair_list):
-                pair_list.append(pair)
-                pairs[key] = pair_list
-
+        all_contacted_pairs = contacted_pairs(pair, pair_list)
+        for p in all_contacted_pairs:
+            pair_list.remove(p)
+        all_contacted_pairs.append(pair)
+        merged = merge_contacted_pair_list(all_contacted_pairs)
+        pair_list.append(merged)
+        pairs[key] = pair_list
+    
 
 parser = argparse.ArgumentParser(description='Generate non-overlapping clone pairs in the format usable for BigCloneBench')
 parser.add_argument('-o', '--output', type=argparse.FileType('w', encoding="ascii", errors='backslashreplace'), default=output_stream,
@@ -118,18 +103,29 @@ parser.add_argument('-m', '--minlines', type=int, default=1, help='Minimal line 
 
 args = parser.parse_args()
 
-pairs = {}
-for line in tqdm(args.input):
-    ob = json.loads(line)
-    repeats = ob['locations']
-    if args.maxrepeat ==0 or len(repeats) <= args.maxrepeat:
-        for i in range(len(repeats)):
-            for j in range(i+1, len(repeats)):
-                pair = (repeats[i], repeats[j])
-                merge_to_pairs(pair, pairs)
-
-
-for _, pairs in pairs.items():
-    for pair in pairs:
-        if pair[0].end - pair[0].start >= args.minlines and pair[1].end - pair[1].start >= args.minlines:
-            output_pair(pair)
+if args.gap < 0:
+    for line in tqdm(args.input):
+        ob = json.loads(line)
+        repeats = ob['locations']
+        if args.maxrepeat ==0 or len(repeats) <= args.maxrepeat:
+            for i in range(len(repeats)):
+                for j in range(i+1, len(repeats)):
+                    pair = (repeats[i], repeats[j])
+                    if pair[0].end - pair[0].start >= args.minlines and \
+                     pair[1].end - pair[1].start >= args.minlines:
+                        output_pair(pair)
+else:
+    pairs = {}
+    for line in tqdm(args.input):
+        ob = json.loads(line)
+        repeats = ob['locations']
+        if args.maxrepeat ==0 or len(repeats) <= args.maxrepeat:
+            for i in range(len(repeats)):
+                for j in range(i+1, len(repeats)):
+                    pair = (repeats[i], repeats[j])
+                    merge_to_pairs(pair, pairs)
+    for _, pairs in pairs.items():
+        for pair in pairs:
+            if pair[0].end - pair[0].start >= args.minlines and \
+                pair[1].end - pair[1].start >= args.minlines:
+                output_pair(pair)
