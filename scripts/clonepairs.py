@@ -110,7 +110,7 @@ if args.gap < 0:
         if args.maxrepeat ==0 or len(repeats) <= args.maxrepeat:
             for i in range(len(repeats)):
                 for j in range(i+1, len(repeats)):
-                    pair = (repeats[i], repeats[j])
+                    pair = normalize_pair((repeats[i], repeats[j]))
                     if pair[0].end - pair[0].start >= args.minlines and \
                      pair[1].end - pair[1].start >= args.minlines:
                         output_pair(pair)
