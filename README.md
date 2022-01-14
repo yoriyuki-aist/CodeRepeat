@@ -52,7 +52,3 @@ Each repeated sequence is on its own line, encoded as a top-level JSON object wi
   - `path`: the path to the original source file in which the sequence was found
   - `start_line`: the line in the original source file at which the sequence started
   - `end_line`: the line in the original source file at which the sequence ended
-
-### Notebooks
-
-This project includes Python (jupyter) notebooks with scripts to process the files emitted by the postprocessor.
