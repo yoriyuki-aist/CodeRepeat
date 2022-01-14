@@ -1,8 +1,9 @@
 # Code Repeats
 
-Code Repeats is a clone detector for large sets of files.
+Code Repeats is a code clone (copy-pasted code) detector for large sets of files.
 It can be used with both text repositories and binaries.
 
+[An academic paper presented in APSEC2021](papers/APSEC2021.pdf)
 ## Prerequisites
 - Cmake (build tool)
 - zlib (compression library)
