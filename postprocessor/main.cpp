@@ -1,6 +1,7 @@
 #include <iostream>
 #include <algorithm>
 #include <unordered_set>
+#include <optional>
 #include "../util/stringescape.h"
 #include "../util/ArgParser.h"
 #include "zlib/zstr.hpp"

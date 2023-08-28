@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <set>
+#include <optional>
 #include "../util/ArgParser.h"
 
 namespace fs = std::filesystem;
