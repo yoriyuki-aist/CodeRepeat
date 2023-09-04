@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
 
             if (linemap) {
                 if (c == '\n') {
-                    *linemap << out.tellp() << "\t" << line_nb << "\n";
+                    *linemap << out.tellp()+1 << "\t" << line_nb << "\n";
                     ++line_nb;
                 }
             }
