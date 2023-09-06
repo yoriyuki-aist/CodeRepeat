@@ -16,11 +16,11 @@ def read_lines_from_file(filename, start_line, end_line):
     with open(filename, 'r') as file:
         for line_number, line in enumerate(file, start=1):
             if start_line <= line_number <= end_line:
-                lines.append(line.strip())
+                lines.append(line)
             elif line_number > end_line:
                 break
 
-    return "\n".join(lines)
+    return "".join(lines)
 
 
 parser = argparse.ArgumentParser(description='vallidate the output')
