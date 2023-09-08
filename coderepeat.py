@@ -62,6 +62,23 @@ def run_findrepset(args, intermediary):
     else:
         run([*base_cmd, "-o", "{}.output.txt".format(intermediary), concat_in])
 
+def run_findrepset_csa(args, intermediary):
+    base_cmd = [
+        "{}/bin/findrepset_csa".format(args.prefix),
+        "-ml", str(args.minrepeat),
+    ]
+    if not args.supermax:
+        base_cmd.append("-nm"),  # find maximal repeats, not supermaximal ones
+    concat_in = "{}.concat".format(intermediary)
+    if args.compress:
+        base_cmd.append(concat_in)
+        cmd = " ".join([shlex.quote(c) for c in base_cmd]) + " -o /dev/fd/1 | gzip -c > " + shlex.quote(
+            "{}.output.txt.gz".format(intermediary))
+        print("Running '" + cmd + "'...")
+        subprocess.run(cmd, shell=True, check=True)
+    else:
+        run([*base_cmd, "-o", "{}.output.txt".format(intermediary), concat_in])
+
 
 def run_postprocessor(args, intermediary, output):
     post_args = [
@@ -99,7 +116,10 @@ def run_scan(args):
     if run_all or "pre" in args.run:
         run_preprocessor(args, intermediary)
 
-    if run_all or "findrepeats" in args.run:
+    if (run_all or "findrepeats" in args.run) and args.csa:
+        run_findrepset_csa(args, intermediary)
+
+    else :
         run_findrepset(args, intermediary)
 
     if run_all or "post" in args.run:
@@ -123,6 +143,7 @@ def parse_args():
                              help='Minimum size of the repeated sequences')
     parser.add_argument('-i', '--intermediaries',
                              help='Output directory for intermediary files (default: regular output directory)')
+    parser.add_argument('--csa', action='store_true')
     pre_group = parser.add_argument_group('Pre-processing', 'Options for the "pre" step. '
                                                                  'Space-producing transformations are applied before '
                                                                  'space normalization.')
