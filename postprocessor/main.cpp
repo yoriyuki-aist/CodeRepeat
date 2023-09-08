@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <unordered_set>
 #include <optional>
+#include <map>
 #include "../util/stringescape.h"
 #include "../util/ArgParser.h"
 #include "zlib/zstr.hpp"

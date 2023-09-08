@@ -3,7 +3,6 @@
 
 #include "tipos.h"
 #include "output_callbacks.h"
-#include <stdio.h>
 
 
 typedef struct filter_data {

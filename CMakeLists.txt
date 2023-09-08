@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
-project(dna-bwt)
+project(coderepeat)
+
+set(HOME /Users/yoriyuki)
 
 # Set the compiler to g++-11
 #set(CMAKE_CXX_COMPILER g++-11)
@@ -14,4 +16,5 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_subdirectory(preprocessor)
 add_subdirectory(findrepset)
+add_subdirectory(findrepset_csa)
 add_subdirectory(postprocessor)

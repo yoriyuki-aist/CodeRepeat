@@ -1,7 +1,6 @@
 #include <stdio.h>
-#include <stdlib.h>
 
-#include "macros.h"
+#include "macros.h"	
 #include "output_callbacks.h"
 #include "enc.h"
 

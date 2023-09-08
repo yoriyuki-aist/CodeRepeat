@@ -1,8 +1,5 @@
 #ifndef __BITARRAY_H__
 #define __BITARRAY_H__
-
-#include <string.h>
-
 #include "tipos.h"
 
 typedef uint word_type;

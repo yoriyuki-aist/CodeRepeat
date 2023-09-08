@@ -1,7 +1,7 @@
-#include "mrs.h"
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "mrs.h"
 #include "bittree.h"
 #include "sorters.h"
 

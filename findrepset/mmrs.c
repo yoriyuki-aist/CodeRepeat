@@ -1,8 +1,8 @@
-#include "mmrs.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
+#include "mmrs.h"
 #include "macros.h"
 #include "output_callbacks.h"
 

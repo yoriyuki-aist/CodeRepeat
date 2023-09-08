@@ -1,6 +1,5 @@
 #ifndef __MACROS_C__
 #define __MACROS_C__
-#include <stdio.h>
 
 #define forn(i, n) for(i = 0; i < (n); ++i)
 #define dforn(i, n) for(i = (n); i-- != 0;)

@@ -2,7 +2,6 @@
 #define __OUTPUT_CALLBACKS_H__
 
 #include "tipos.h"
-#include <stdio.h>
 
 /**
  * The first parameter is the length of all repetitions, the second parameter

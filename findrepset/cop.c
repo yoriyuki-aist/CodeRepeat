@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "cop.h"
 #include "macros.h"
 

@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "bwt.h"
 #include "sorters.h"
 #include "macros.h"

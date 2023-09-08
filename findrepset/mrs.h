@@ -2,7 +2,6 @@
 #define __MRS_H__
 
 #include "tipos.h"
-#include <stdio.h>
 #include "output_callbacks.h"
 
 /**

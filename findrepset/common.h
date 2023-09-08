@@ -2,7 +2,6 @@
 #define __COMMON_H__
 
 #include "tipos.h"
-#include <stdio.h>
 
 /** Integer logarithm **/
 inline uint bneed(uint x);

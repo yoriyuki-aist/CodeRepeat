@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <stdio.h>
 #include "common.h"
 
 #include "macros.h"

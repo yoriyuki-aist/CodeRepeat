@@ -1,8 +1,9 @@
-#include "bittree.h"
-
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
+#include <stdio.h>
 
+#include "bittree.h"
 #include "tipos.h"
 #include "macros.h"
 
